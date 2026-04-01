@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import axios from 'axios';
 import { 
   Users, 
   Calendar, 
@@ -36,6 +37,15 @@ const data = [
 
 const Dashboard: React.FC = () => {
   const { profile } = useAuth();
+  const [serverStats, setServerStats] = useState<{ total_patients: number; total_revenue: number } | null>(null);
+
+  useEffect(() => {
+    if (profile?.clinicId) {
+      axios.get(`/api/stats/${profile.clinicId}`)
+        .then(res => setServerStats(res.data))
+        .catch(err => console.error('Failed to fetch server stats', err));
+    }
+  }, [profile?.clinicId]);
 
   const renderSuperAdminDashboard = () => (
     <div className="space-y-8">
@@ -46,9 +56,9 @@ const Dashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard label="Total Clinics" value="24" change="+2" icon={Activity} color="bg-blue-500" />
-        <StatCard label="Total Doctors" value="168" change="+12" icon={Stethoscope} color="bg-purple-500" />
-        <StatCard label="Total Patients" value="4,872" change="+487" icon={UserRound} color="bg-emerald-500" />
-        <StatCard label="Total Revenue" value="रू 1.2M" change="+15%" icon={CreditCard} color="bg-amber-500" />
+        <StatCard label="Total Doctors" value={serverStats?.total_doctors?.toString() || "168"} change="+12" icon={Stethoscope} color="bg-purple-500" />
+        <StatCard label="Total Patients" value={serverStats?.total_patients?.toLocaleString() || "4,872"} change="+487" icon={UserRound} color="bg-emerald-500" />
+        <StatCard label="Total Revenue" value={`रू ${serverStats?.total_revenue?.toLocaleString() || "1.2M"}`} change="+15%" icon={CreditCard} color="bg-amber-500" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

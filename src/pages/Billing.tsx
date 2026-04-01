@@ -1,7 +1,30 @@
-import React from 'react';
-import { Search, Plus, Filter, CreditCard, Download, ExternalLink, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, Plus, Filter, CreditCard, Download, ExternalLink, CheckCircle2, Clock, AlertCircle, Wallet } from 'lucide-react';
+import axios from 'axios';
+import { toast } from 'sonner';
 
 const Billing: React.FC = () => {
+  const [isPaying, setIsPaying] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+
+  const handleKhaltiPayment = async (invoice: any) => {
+    setIsPaying(true);
+    // In a real app, you'd trigger the Khalti SDK here.
+    // For this demo, we'll simulate a successful payment and verify it on the server.
+    try {
+      toast.info('Simulating Khalti Payment...');
+      // Simulate server-side verification
+      const res = await axios.post('/api/payments/verify/khalti', {
+        token: 'fake-token-123',
+        amount: 1000 // amount in paisa
+      });
+      toast.success('Payment verified successfully via WellCare Hosting Server!');
+    } catch (err) {
+      toast.error('Payment verification failed on server.');
+    } finally {
+      setIsPaying(false);
+    }
+  };
   const invoices = [
     { id: 'INV-204', patient: 'Aarav Sharma', amount: 'रू 1,500', date: 'Mar 15, 2026', status: 'Paid', method: 'Khalti' },
     { id: 'INV-205', patient: 'Priya Thapa', amount: 'रू 2,200', date: 'Mar 20, 2026', status: 'Unpaid', method: '-' },
@@ -114,6 +137,16 @@ const Billing: React.FC = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
+                      {inv.status === 'Unpaid' && (
+                        <button 
+                          onClick={() => handleKhaltiPayment(inv)}
+                          disabled={isPaying}
+                          className="flex items-center gap-1.5 px-3 py-1 bg-purple-600 text-white text-[10px] font-bold rounded-lg hover:bg-purple-700 transition-all disabled:opacity-50"
+                        >
+                          <Wallet className="w-3 h-3" />
+                          Pay Khalti
+                        </button>
+                      )}
                       <button className="text-gray-400 hover:text-blue-600 transition-colors">
                         <ExternalLink className="w-4 h-4" />
                       </button>
