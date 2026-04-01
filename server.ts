@@ -3,7 +3,6 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import cors from 'cors';
 import morgan from 'morgan';
-import Database from 'better-sqlite3';
 import mysql from 'mysql2/promise';
 import axios from 'axios';
 import * as admin from 'firebase-admin';
@@ -28,73 +27,79 @@ async function initDB() {
     });
     console.log('Connected to MySQL.');
   } else {
-    console.log('Using SQLite database (wellcare.db)...');
-    db = new Database('wellcare.db');
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS clinic_stats (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        clinic_id TEXT,
-        total_patients INTEGER DEFAULT 0,
-        total_revenue REAL DEFAULT 0,
-        total_doctors INTEGER DEFAULT 0,
-        total_appointments INTEGER DEFAULT 0,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
+    console.log('Attempting to use SQLite database (wellcare.db)...');
+    try {
+      const { default: Database } = await import('better-sqlite3');
+      db = new Database('wellcare.db');
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS clinic_stats (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          clinic_id TEXT,
+          total_patients INTEGER DEFAULT 0,
+          total_revenue REAL DEFAULT 0,
+          total_doctors INTEGER DEFAULT 0,
+          total_appointments INTEGER DEFAULT 0,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
 
-      CREATE TABLE IF NOT EXISTS demo_data (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        type TEXT,
-        data JSON,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
+        CREATE TABLE IF NOT EXISTS demo_data (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          type TEXT,
+          data JSON,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
 
-      CREATE TABLE IF NOT EXISTS appointments (
-        id TEXT PRIMARY KEY,
-        clinic_id TEXT,
-        doctor_id TEXT,
-        patient_id TEXT,
-        patient_name TEXT,
-        doctor_name TEXT,
-        date TEXT,
-        time TEXT,
-        type TEXT,
-        status TEXT,
-        amount REAL
-      );
+        CREATE TABLE IF NOT EXISTS appointments (
+          id TEXT PRIMARY KEY,
+          clinic_id TEXT,
+          doctor_id TEXT,
+          patient_id TEXT,
+          patient_name TEXT,
+          doctor_name TEXT,
+          date TEXT,
+          time TEXT,
+          type TEXT,
+          status TEXT,
+          amount REAL
+        );
 
-      CREATE TABLE IF NOT EXISTS patients (
-        id TEXT PRIMARY KEY,
-        name TEXT,
-        email TEXT,
-        phone TEXT,
-        age INTEGER,
-        gender TEXT,
-        blood_group TEXT,
-        address TEXT
-      );
+        CREATE TABLE IF NOT EXISTS patients (
+          id TEXT PRIMARY KEY,
+          name TEXT,
+          email TEXT,
+          phone TEXT,
+          age INTEGER,
+          gender TEXT,
+          blood_group TEXT,
+          address TEXT
+        );
 
-      CREATE TABLE IF NOT EXISTS medical_records (
-        id TEXT PRIMARY KEY,
-        patient_id TEXT,
-        patient_name TEXT,
-        doctor_name TEXT,
-        date TEXT,
-        diagnosis TEXT,
-        prescription TEXT,
-        notes TEXT
-      );
-    `);
+        CREATE TABLE IF NOT EXISTS medical_records (
+          id TEXT PRIMARY KEY,
+          patient_id TEXT,
+          patient_name TEXT,
+          doctor_name TEXT,
+          date TEXT,
+          diagnosis TEXT,
+          prescription TEXT,
+          notes TEXT
+        );
+      `);
 
-    // Migration for existing databases (Ensure columns exist)
-    const tableInfo = db.prepare("PRAGMA table_info(clinic_stats)").all() as any[];
-    const columns = tableInfo.map(c => c.name);
-    if (!columns.includes('total_doctors')) {
-      try { db.prepare('ALTER TABLE clinic_stats ADD COLUMN total_doctors INTEGER DEFAULT 0').run(); } catch(e) {}
+      // Migration for existing databases (Ensure columns exist)
+      const tableInfo = db.prepare("PRAGMA table_info(clinic_stats)").all() as any[];
+      const columns = tableInfo.map(c => c.name);
+      if (!columns.includes('total_doctors')) {
+        try { db.prepare('ALTER TABLE clinic_stats ADD COLUMN total_doctors INTEGER DEFAULT 0').run(); } catch(e) {}
+      }
+      if (!columns.includes('total_appointments')) {
+        try { db.prepare('ALTER TABLE clinic_stats ADD COLUMN total_appointments INTEGER DEFAULT 0').run(); } catch(e) {}
+      }
+      seedSQLiteData();
+    } catch (error) {
+      console.error('SQLite is not available. Please ensure better-sqlite3 is installed or use MySQL.');
+      process.exit(1);
     }
-    if (!columns.includes('total_appointments')) {
-      try { db.prepare('ALTER TABLE clinic_stats ADD COLUMN total_appointments INTEGER DEFAULT 0').run(); } catch(e) {}
-    }
-    seedSQLiteData();
   }
 }
 
