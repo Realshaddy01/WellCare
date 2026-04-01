@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Plus, Filter, MoreVertical, Download, UserRound, X } from 'lucide-react';
-import axios from 'axios';
+import api from '../lib/api';
 import { toast } from 'sonner';
 
 const Patients: React.FC = () => {
@@ -19,7 +19,7 @@ const Patients: React.FC = () => {
 
   const fetchPatients = async () => {
     try {
-      const res = await axios.get('/api/demo/patients');
+      const res = await api.get('/api/demo/patients');
       setPatients(res.data);
     } catch (err) {
       toast.error('Failed to fetch patients');
@@ -35,7 +35,7 @@ const Patients: React.FC = () => {
   const handleAddPatient = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await axios.post('/api/demo/patients', newPatient);
+      await api.post('/api/demo/patients', newPatient);
       toast.success('Patient added successfully');
       setShowModal(false);
       setNewPatient({ name: '', email: '', phone: '', age: '', gender: 'Male', blood_group: 'A+', address: '' });

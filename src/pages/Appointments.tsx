@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Calendar as CalendarIcon, Plus, Search, Filter, ChevronLeft, ChevronRight, Video, MapPin, Clock, X } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO } from 'date-fns';
-import axios from 'axios';
+import api from '../lib/api';
 import { toast } from 'sonner';
 
 const Appointments: React.FC = () => {
@@ -34,9 +34,9 @@ const Appointments: React.FC = () => {
   const fetchData = async () => {
     try {
       const [appRes, docRes, patRes] = await Promise.all([
-        axios.get('/api/demo/appointments'),
-        axios.get('/api/demo/doctors'),
-        axios.get('/api/demo/patients')
+        api.get('/api/demo/appointments'),
+        api.get('/api/demo/doctors'),
+        api.get('/api/demo/patients')
       ]);
       setAppointments(appRes.data);
       setDoctors(docRes.data);
@@ -58,7 +58,7 @@ const Appointments: React.FC = () => {
     const patient = patients.find(p => p.id === newAppointment.patient_id);
     
     try {
-      await axios.post('/api/demo/appointments', {
+      await api.post('/api/demo/appointments', {
         ...newAppointment,
         doctor_name: doctor?.name,
         patient_name: patient?.name

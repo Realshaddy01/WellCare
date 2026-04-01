@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Plus, Filter, CreditCard, Download, ExternalLink, CheckCircle2, Clock, AlertCircle, Wallet } from 'lucide-react';
-import axios from 'axios';
+import api from '../lib/api';
 import { toast } from 'sonner';
 
 const Billing: React.FC = () => {
@@ -14,7 +14,7 @@ const Billing: React.FC = () => {
     try {
       toast.info('Simulating Khalti Payment...');
       // Simulate server-side verification
-      const res = await axios.post('/api/payments/verify/khalti', {
+      const res = await api.post('/api/payments/verify/khalti', {
         token: 'fake-token-123',
         amount: 1000 // amount in paisa
       });

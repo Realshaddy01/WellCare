@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
+import api from '../lib/api';
 import { 
   Users, 
   Calendar, 
@@ -41,7 +41,7 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     if (profile?.clinicId) {
-      axios.get(`/api/stats/${profile.clinicId}`)
+      api.get(`/api/stats/${profile.clinicId}`)
         .then(res => setServerStats(res.data))
         .catch(err => console.error('Failed to fetch server stats', err));
     }

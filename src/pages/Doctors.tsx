@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Plus, Filter, MoreVertical, Stethoscope, Star, MapPin, DollarSign } from 'lucide-react';
-import axios from 'axios';
+import api from '../lib/api';
 
 const Doctors: React.FC = () => {
   const [doctors, setDoctors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios.get('/api/demo/doctors')
+    api.get('/api/demo/doctors')
       .then(res => setDoctors(res.data))
       .catch(err => console.error(err))
       .finally(() => setLoading(false));

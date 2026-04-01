@@ -65,6 +65,16 @@ db.exec(`
   );
 `);
 
+// Migration for existing databases (Ensure columns exist)
+const tableInfo = db.prepare("PRAGMA table_info(clinic_stats)").all() as any[];
+const columns = tableInfo.map(c => c.name);
+if (!columns.includes('total_doctors')) {
+  try { db.prepare('ALTER TABLE clinic_stats ADD COLUMN total_doctors INTEGER DEFAULT 0').run(); } catch(e) {}
+}
+if (!columns.includes('total_appointments')) {
+  try { db.prepare('ALTER TABLE clinic_stats ADD COLUMN total_appointments INTEGER DEFAULT 0').run(); } catch(e) {}
+}
+
 // Seed initial demo data if empty
 const seedData = () => {
   const stats = db.prepare('SELECT COUNT(*) as count FROM clinic_stats').get() as { count: number };

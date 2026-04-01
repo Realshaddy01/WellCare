@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { FileText, Search, Plus, Filter, Download, Eye, FileEdit, Trash2, X } from 'lucide-react';
-import axios from 'axios';
+import api from '../lib/api';
 import { toast } from 'sonner';
 
 const Records: React.FC = () => {
@@ -21,9 +21,9 @@ const Records: React.FC = () => {
   const fetchData = async () => {
     try {
       const [recRes, patRes, docRes] = await Promise.all([
-        axios.get('/api/demo/records'),
-        axios.get('/api/demo/patients'),
-        axios.get('/api/demo/doctors')
+        api.get('/api/demo/records'),
+        api.get('/api/demo/patients'),
+        api.get('/api/demo/doctors')
       ]);
       setRecords(recRes.data);
       setPatients(patRes.data);
@@ -43,7 +43,7 @@ const Records: React.FC = () => {
     e.preventDefault();
     const patient = patients.find(p => p.id === newRecord.patient_id);
     try {
-      await axios.post('/api/demo/records', {
+      await api.post('/api/demo/records', {
         ...newRecord,
         patient_name: patient?.name
       });
