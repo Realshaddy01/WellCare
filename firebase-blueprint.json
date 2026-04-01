@@ -1,0 +1,161 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and role information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["super_admin", "clinic_admin", "doctor", "receptionist", "patient"] },
+        "clinicId": { "type": "string", "description": "Foreign key to Clinics" },
+        "photoURL": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Clinic": {
+      "title": "Clinic",
+      "description": "Clinic information",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "logo": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name"]
+    },
+    "Doctor": {
+      "title": "Doctor",
+      "description": "Doctor specific information",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "clinicId": { "type": "string" },
+        "specialty": { "type": "string" },
+        "fees": { "type": "number" },
+        "bio": { "type": "string" },
+        "availability": { "type": "object" }
+      },
+      "required": ["userId", "clinicId", "specialty"]
+    },
+    "Patient": {
+      "title": "Patient",
+      "description": "Patient specific information",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "clinicId": { "type": "string" },
+        "dob": { "type": "string", "format": "date" },
+        "allergies": { "type": "array", "items": { "type": "string" } },
+        "medicalHistory": { "type": "string" },
+        "bloodGroup": { "type": "string" }
+      },
+      "required": ["userId", "clinicId"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Appointment booking information",
+      "type": "object",
+      "properties": {
+        "doctorId": { "type": "string" },
+        "patientId": { "type": "string" },
+        "clinicId": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "time": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "completed", "cancelled"] },
+        "notes": { "type": "string" },
+        "type": { "type": "string", "enum": ["in-person", "video"] },
+        "videoLink": { "type": "string" }
+      },
+      "required": ["doctorId", "patientId", "clinicId", "date", "time", "status"]
+    },
+    "Encounter": {
+      "title": "Encounter",
+      "description": "Patient clinical encounter / visit record",
+      "type": "object",
+      "properties": {
+        "appointmentId": { "type": "string" },
+        "patientId": { "type": "string" },
+        "doctorId": { "type": "string" },
+        "diagnosis": { "type": "string" },
+        "prescriptions": { "type": "array", "items": { "type": "object" } },
+        "vitals": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["appointmentId", "patientId", "doctorId"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Billing invoice",
+      "type": "object",
+      "properties": {
+        "appointmentId": { "type": "string" },
+        "patientId": { "type": "string" },
+        "clinicId": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["unpaid", "paid", "partially_paid", "refunded"] },
+        "paymentMethod": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["appointmentId", "patientId", "amount", "status"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Payment transaction record",
+      "type": "object",
+      "properties": {
+        "invoiceId": { "type": "string" },
+        "gateway": { "type": "string", "enum": ["fonepay", "khalti", "esewa", "cash"] },
+        "transactionId": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["invoiceId", "gateway", "amount"]
+    },
+    "Service": {
+      "title": "Service",
+      "description": "Services offered by clinic / doctor",
+      "type": "object",
+      "properties": {
+        "clinicId": { "type": "string" },
+        "doctorId": { "type": "string" },
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "description": { "type": "string" }
+      },
+      "required": ["clinicId", "name", "price"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "User notifications",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "type": { "type": "string" },
+        "message": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "message"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": { "schema": "User", "description": "User profiles" },
+    "/clinics/{clinicId}": { "schema": "Clinic", "description": "Clinics" },
+    "/doctors/{doctorId}": { "schema": "Doctor", "description": "Doctor details" },
+    "/patients/{patientId}": { "schema": "Patient", "description": "Patient details" },
+    "/appointments/{appointmentId}": { "schema": "Appointment", "description": "Appointments" },
+    "/encounters/{encounterId}": { "schema": "Encounter", "description": "Clinical encounters" },
+    "/invoices/{invoiceId}": { "schema": "Invoice", "description": "Invoices" },
+    "/payments/{paymentId}": { "schema": "Payment", "description": "Payments" },
+    "/services/{serviceId}": { "schema": "Service", "description": "Clinic services" },
+    "/notifications/{notificationId}": { "schema": "Notification", "description": "User notifications" }
+  }
+}

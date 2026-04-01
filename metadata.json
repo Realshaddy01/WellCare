@@ -1,0 +1,5 @@
+{
+  "name": "WellCare CMS",
+  "description": "A comprehensive Clinic Management System with multi-role dashboards, appointment scheduling, EMR, billing, and integrated payments.",
+  "requestFramePermissions": ["camera", "microphone", "geolocation"]
+}
