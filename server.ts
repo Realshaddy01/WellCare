@@ -4,81 +4,105 @@ import path from 'path';
 import cors from 'cors';
 import morgan from 'morgan';
 import Database from 'better-sqlite3';
+import mysql from 'mysql2/promise';
 import axios from 'axios';
 import * as admin from 'firebase-admin';
 import fs from 'fs';
+import dotenv from 'dotenv';
 
-// Initialize SQLite for "others data" as requested for hosting server
-const db = new Database('wellcare.db');
-db.exec(`
-  CREATE TABLE IF NOT EXISTS clinic_stats (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    clinic_id TEXT,
-    total_patients INTEGER DEFAULT 0,
-    total_revenue REAL DEFAULT 0,
-    total_doctors INTEGER DEFAULT 0,
-    total_appointments INTEGER DEFAULT 0,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
+dotenv.config();
 
-  CREATE TABLE IF NOT EXISTS demo_data (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    type TEXT,
-    data JSON,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
+// Database Connection Setup
+let db: any;
+const isMySQL = process.env.DB_CONNECTION === 'mysql';
 
-  CREATE TABLE IF NOT EXISTS appointments (
-    id TEXT PRIMARY KEY,
-    clinic_id TEXT,
-    doctor_id TEXT,
-    patient_id TEXT,
-    patient_name TEXT,
-    doctor_name TEXT,
-    date TEXT,
-    time TEXT,
-    type TEXT,
-    status TEXT,
-    amount REAL
-  );
+async function initDB() {
+  if (isMySQL) {
+    console.log('Connecting to MySQL database...');
+    db = await mysql.createConnection({
+      host: process.env.DB_HOST || '127.0.0.1',
+      user: process.env.DB_USERNAME,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_DATABASE,
+      port: Number(process.env.DB_PORT) || 3306,
+    });
+    console.log('Connected to MySQL.');
+  } else {
+    console.log('Using SQLite database (wellcare.db)...');
+    db = new Database('wellcare.db');
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS clinic_stats (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        clinic_id TEXT,
+        total_patients INTEGER DEFAULT 0,
+        total_revenue REAL DEFAULT 0,
+        total_doctors INTEGER DEFAULT 0,
+        total_appointments INTEGER DEFAULT 0,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
 
-  CREATE TABLE IF NOT EXISTS patients (
-    id TEXT PRIMARY KEY,
-    name TEXT,
-    email TEXT,
-    phone TEXT,
-    age INTEGER,
-    gender TEXT,
-    blood_group TEXT,
-    address TEXT
-  );
+      CREATE TABLE IF NOT EXISTS demo_data (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        type TEXT,
+        data JSON,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
 
-  CREATE TABLE IF NOT EXISTS medical_records (
-    id TEXT PRIMARY KEY,
-    patient_id TEXT,
-    patient_name TEXT,
-    doctor_name TEXT,
-    date TEXT,
-    diagnosis TEXT,
-    prescription TEXT,
-    notes TEXT
-  );
-`);
+      CREATE TABLE IF NOT EXISTS appointments (
+        id TEXT PRIMARY KEY,
+        clinic_id TEXT,
+        doctor_id TEXT,
+        patient_id TEXT,
+        patient_name TEXT,
+        doctor_name TEXT,
+        date TEXT,
+        time TEXT,
+        type TEXT,
+        status TEXT,
+        amount REAL
+      );
 
-// Migration for existing databases (Ensure columns exist)
-const tableInfo = db.prepare("PRAGMA table_info(clinic_stats)").all() as any[];
-const columns = tableInfo.map(c => c.name);
-if (!columns.includes('total_doctors')) {
-  try { db.prepare('ALTER TABLE clinic_stats ADD COLUMN total_doctors INTEGER DEFAULT 0').run(); } catch(e) {}
+      CREATE TABLE IF NOT EXISTS patients (
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        email TEXT,
+        phone TEXT,
+        age INTEGER,
+        gender TEXT,
+        blood_group TEXT,
+        address TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS medical_records (
+        id TEXT PRIMARY KEY,
+        patient_id TEXT,
+        patient_name TEXT,
+        doctor_name TEXT,
+        date TEXT,
+        diagnosis TEXT,
+        prescription TEXT,
+        notes TEXT
+      );
+    `);
+
+    // Migration for existing databases (Ensure columns exist)
+    const tableInfo = db.prepare("PRAGMA table_info(clinic_stats)").all() as any[];
+    const columns = tableInfo.map(c => c.name);
+    if (!columns.includes('total_doctors')) {
+      try { db.prepare('ALTER TABLE clinic_stats ADD COLUMN total_doctors INTEGER DEFAULT 0').run(); } catch(e) {}
+    }
+    if (!columns.includes('total_appointments')) {
+      try { db.prepare('ALTER TABLE clinic_stats ADD COLUMN total_appointments INTEGER DEFAULT 0').run(); } catch(e) {}
+    }
+    seedSQLiteData();
+  }
 }
-if (!columns.includes('total_appointments')) {
-  try { db.prepare('ALTER TABLE clinic_stats ADD COLUMN total_appointments INTEGER DEFAULT 0').run(); } catch(e) {}
-}
 
-// Seed initial demo data if empty
-const seedData = () => {
+// Seed initial demo data for SQLite if empty
+const seedSQLiteData = () => {
   const stats = db.prepare('SELECT COUNT(*) as count FROM clinic_stats').get() as { count: number };
   if (stats.count === 0) {
+    console.log('Seeding initial data...');
     db.prepare('INSERT INTO clinic_stats (clinic_id, total_patients, total_revenue, total_doctors, total_appointments) VALUES (?, ?, ?, ?, ?)').run(
       'default-clinic', 487, 124500.50, 168, 1250
     );
@@ -122,11 +146,12 @@ const seedData = () => {
         r.id, r.patient_id, r.patient_name, r.doctor_name, r.date, r.diagnosis, r.prescription, r.notes
       );
     });
+    console.log('Initial data seeded successfully.');
   }
 };
-seedData();
 
 async function startServer() {
+  await initDB();
   const app = express();
   const PORT = 3000;
 
@@ -140,63 +165,153 @@ async function startServer() {
   });
 
   // Example "others data" endpoint using SQLite
-  app.get('/api/stats/:clinicId', (req, res) => {
-    const { clinicId } = req.params;
-    const row = db.prepare('SELECT * FROM clinic_stats WHERE clinic_id = ? OR clinic_id = "default-clinic"').get(clinicId);
-    if (row) {
-      res.json(row);
-    } else {
-      res.json({ clinic_id: clinicId, total_patients: 0, total_revenue: 0, total_doctors: 0, total_appointments: 0 });
+  app.get('/api/stats/:clinicId', async (req, res) => {
+    try {
+      const { clinicId } = req.params;
+      let row;
+      if (isMySQL) {
+        const [rows] = await db.execute('SELECT * FROM clinic_stats WHERE clinic_id = ? OR clinic_id = "default-clinic"', [clinicId]);
+        row = rows[0];
+      } else {
+        row = db.prepare('SELECT * FROM clinic_stats WHERE clinic_id = ? OR clinic_id = "default-clinic"').get(clinicId);
+      }
+      
+      if (row) {
+        res.json(row);
+      } else {
+        res.json({ clinic_id: clinicId, total_patients: 0, total_revenue: 0, total_doctors: 0, total_appointments: 0 });
+      }
+    } catch (error: any) {
+      console.error('Error fetching stats:', error);
+      res.status(500).json({ error: 'Internal Server Error', details: error.message });
     }
   });
 
-  app.get('/api/demo/doctors', (req, res) => {
-    const row = db.prepare('SELECT data FROM demo_data WHERE type = "doctors"').get() as { data: string };
-    res.json(JSON.parse(row.data));
+  app.get('/api/demo/doctors', async (req, res) => {
+    try {
+      let row;
+      if (isMySQL) {
+        const [rows] = await db.execute('SELECT data FROM demo_data WHERE type = "doctors"');
+        row = rows[0];
+      } else {
+        row = db.prepare('SELECT data FROM demo_data WHERE type = "doctors"').get() as { data: string } | undefined;
+      }
+      
+      if (!row) {
+        return res.json([]);
+      }
+      res.json(typeof row.data === 'string' ? JSON.parse(row.data) : row.data);
+    } catch (error: any) {
+      console.error('Error fetching doctors:', error);
+      res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    }
   });
 
-  app.get('/api/demo/patients', (req, res) => {
-    const rows = db.prepare('SELECT * FROM patients').all();
-    res.json(rows);
+  app.get('/api/demo/patients', async (req, res) => {
+    try {
+      let rows;
+      if (isMySQL) {
+        [rows] = await db.execute('SELECT * FROM patients');
+      } else {
+        rows = db.prepare('SELECT * FROM patients').all();
+      }
+      res.json(rows);
+    } catch (error: any) {
+      console.error('Error fetching patients:', error);
+      res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    }
   });
 
-  app.post('/api/demo/patients', (req, res) => {
-    const { name, email, phone, age, gender, blood_group, address } = req.body;
-    const id = `pat-${Date.now()}`;
-    db.prepare('INSERT INTO patients (id, name, email, phone, age, gender, blood_group, address) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
-      id, name, email, phone, age, gender, blood_group, address
-    );
-    res.status(201).json({ id, name, email, phone, age, gender, blood_group, address });
+  app.post('/api/demo/patients', async (req, res) => {
+    try {
+      const { name, email, phone, age, gender, blood_group, address } = req.body;
+      const id = `pat-${Date.now()}`;
+      if (isMySQL) {
+        await db.execute('INSERT INTO patients (id, name, email, phone, age, gender, blood_group, address) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [
+          id, name, email, phone, age, gender, blood_group, address
+        ]);
+      } else {
+        db.prepare('INSERT INTO patients (id, name, email, phone, age, gender, blood_group, address) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
+          id, name, email, phone, age, gender, blood_group, address
+        );
+      }
+      res.status(201).json({ id, name, email, phone, age, gender, blood_group, address });
+    } catch (error: any) {
+      console.error('Error creating patient:', error);
+      res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    }
   });
 
   // Appointments CRUD
-  app.get('/api/demo/appointments', (req, res) => {
-    const rows = db.prepare('SELECT * FROM appointments').all();
-    res.json(rows);
+  app.get('/api/demo/appointments', async (req, res) => {
+    try {
+      let rows;
+      if (isMySQL) {
+        [rows] = await db.execute('SELECT * FROM appointments');
+      } else {
+        rows = db.prepare('SELECT * FROM appointments').all();
+      }
+      res.json(rows);
+    } catch (error: any) {
+      console.error('Error fetching appointments:', error);
+      res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    }
   });
 
-  app.post('/api/demo/appointments', (req, res) => {
-    const { clinic_id, doctor_id, patient_id, patient_name, doctor_name, date, time, type, amount } = req.body;
-    const id = `app-${Date.now()}`;
-    db.prepare('INSERT INTO appointments (id, clinic_id, doctor_id, patient_id, patient_name, doctor_name, date, time, type, status, amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
-      id, clinic_id || 'default-clinic', doctor_id, patient_id, patient_name, doctor_name, date, time, type, 'Pending', amount
-    );
-    res.status(201).json({ id, status: 'Pending' });
+  app.post('/api/demo/appointments', async (req, res) => {
+    try {
+      const { clinic_id, doctor_id, patient_id, patient_name, doctor_name, date, time, type, amount } = req.body;
+      const id = `app-${Date.now()}`;
+      if (isMySQL) {
+        await db.execute('INSERT INTO appointments (id, clinic_id, doctor_id, patient_id, patient_name, doctor_name, date, time, type, status, amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+          id, clinic_id || 'default-clinic', doctor_id, patient_id, patient_name, doctor_name, date, time, type, 'Pending', amount
+        ]);
+      } else {
+        db.prepare('INSERT INTO appointments (id, clinic_id, doctor_id, patient_id, patient_name, doctor_name, date, time, type, status, amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
+          id, clinic_id || 'default-clinic', doctor_id, patient_id, patient_name, doctor_name, date, time, type, 'Pending', amount
+        );
+      }
+      res.status(201).json({ id, status: 'Pending' });
+    } catch (error: any) {
+      console.error('Error creating appointment:', error);
+      res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    }
   });
 
   // Records CRUD
-  app.get('/api/demo/records', (req, res) => {
-    const rows = db.prepare('SELECT * FROM medical_records').all();
-    res.json(rows);
+  app.get('/api/demo/records', async (req, res) => {
+    try {
+      let rows;
+      if (isMySQL) {
+        [rows] = await db.execute('SELECT * FROM medical_records');
+      } else {
+        rows = db.prepare('SELECT * FROM medical_records').all();
+      }
+      res.json(rows);
+    } catch (error: any) {
+      console.error('Error fetching records:', error);
+      res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    }
   });
 
-  app.post('/api/demo/records', (req, res) => {
-    const { patient_id, patient_name, doctor_name, date, diagnosis, prescription, notes } = req.body;
-    const id = `REC-${Date.now()}`;
-    db.prepare('INSERT INTO medical_records (id, patient_id, patient_name, doctor_name, date, diagnosis, prescription, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
-      id, patient_id, patient_name, doctor_name, date, diagnosis, prescription, notes
-    );
-    res.status(201).json({ id });
+  app.post('/api/demo/records', async (req, res) => {
+    try {
+      const { patient_id, patient_name, doctor_name, date, diagnosis, prescription, notes } = req.body;
+      const id = `REC-${Date.now()}`;
+      if (isMySQL) {
+        await db.execute('INSERT INTO medical_records (id, patient_id, patient_name, doctor_name, date, diagnosis, prescription, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [
+          id, patient_id, patient_name, doctor_name, date, diagnosis, prescription, notes
+        ]);
+      } else {
+        db.prepare('INSERT INTO medical_records (id, patient_id, patient_name, doctor_name, date, diagnosis, prescription, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
+          id, patient_id, patient_name, doctor_name, date, diagnosis, prescription, notes
+        );
+      }
+      res.status(201).json({ id });
+    } catch (error: any) {
+      console.error('Error creating record:', error);
+      res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    }
   });
 
   // Payment Verification (Nepal Focus: Khalti/eSewa)
