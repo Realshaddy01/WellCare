@@ -90,11 +90,11 @@ const Appointments: React.FC = () => {
     setFormData({
       doctor_id: app.doctor_id?.toString() || '',
       patient_id: app.patient_id?.toString() || '',
-      date: app.date,
-      time: app.time,
-      type: app.type,
+      date: app.date || format(new Date(), 'yyyy-MM-dd'),
+      time: app.time || '10:00 AM',
+      type: app.type || 'In-person',
       amount: app.amount || 1000,
-      status: app.status
+      status: app.status || 'Pending'
     });
     setShowModal(true);
   };
@@ -234,9 +234,9 @@ const Appointments: React.FC = () => {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
-                          {app.patient_name[0]}
+                          {(app.patient_name || 'P')[0]}
                         </div>
-                        <span className="text-sm font-bold text-gray-900">{app.patient_name}</span>
+                        <span className="text-sm font-bold text-gray-900">{app.patient_name || 'Unknown Patient'}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">{app.doctor_name}</td>

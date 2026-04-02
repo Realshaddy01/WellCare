@@ -54,11 +54,11 @@ const Clinics: React.FC = () => {
   const handleEdit = (clinic: any) => {
     setEditingClinic(clinic);
     setFormData({
-      name: clinic.name,
-      address: clinic.address,
-      phone: clinic.phone,
-      email: clinic.email,
-      status: clinic.status || 'Active'
+      name: clinic?.name || '',
+      address: clinic?.address || '',
+      phone: clinic?.phone || '',
+      email: clinic?.email || '',
+      status: clinic?.status || 'Active'
     });
     setShowModal(true);
   };

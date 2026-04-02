@@ -56,11 +56,11 @@ const Services: React.FC = () => {
   const handleEdit = (service: any) => {
     setEditingService(service);
     setFormData({
-      name: service.name,
-      description: service.description,
-      price: service.price.toString(),
-      status: service.status,
-      clinic_id: service.clinic_id
+      name: service.name || '',
+      description: service.description || '',
+      price: service.price?.toString() || '',
+      status: service.status || 'active',
+      clinic_id: service.clinic_id || 'default-clinic'
     });
     setShowModal(true);
   };

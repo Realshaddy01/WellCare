@@ -56,12 +56,12 @@ const Patients: React.FC = () => {
   const handleEdit = (patient: any) => {
     setEditingPatient(patient);
     setFormData({
-      name: patient.name,
-      email: patient.email,
-      phone: patient.phone,
-      age: patient.age.toString(),
-      gender: patient.gender,
-      blood_group: patient.blood_group,
+      name: patient.name || '',
+      email: patient.email || '',
+      phone: patient.phone || '',
+      age: patient.age?.toString() || '',
+      gender: patient.gender || 'Male',
+      blood_group: patient.blood_group || 'A+',
       address: patient.address || ''
     });
     setShowModal(true);

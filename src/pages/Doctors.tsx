@@ -57,11 +57,11 @@ const Doctors: React.FC = () => {
   const handleEdit = (doc: any) => {
     setEditingDoctor(doc);
     setFormData({
-      name: doc.name,
-      specialty: doc.specialty,
-      fees: doc.fees.toString(),
-      rating: doc.rating,
-      clinic_id: doc.clinic_id
+      name: doc.name || '',
+      specialty: doc.specialty || '',
+      fees: doc.fees?.toString() || '',
+      rating: doc.rating || 4.5,
+      clinic_id: doc.clinic_id || 'default-clinic'
     });
     setShowModal(true);
   };
@@ -127,7 +127,7 @@ const Doctors: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-lg text-amber-600 text-xs font-bold">
                     <Star className="w-3 h-3 fill-current" />
-                    {doc.rating.toFixed(1)}
+                    {Number(doc.rating || 0).toFixed(1)}
                   </div>
                 </div>
                 
