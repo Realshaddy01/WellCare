@@ -11,7 +11,11 @@ import {
   CheckCircle2, 
   XCircle,
   Stethoscope,
-  UserRound
+  UserRound,
+  Package,
+  FlaskConical,
+  ChevronRight,
+  MoreVertical
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -22,287 +26,305 @@ import {
   Tooltip, 
   ResponsiveContainer,
   AreaChart,
-  Area
+  Area,
+  PieChart,
+  Pie,
+  Cell,
+  Legend
 } from 'recharts';
+import { format, parseISO, isSameDay } from 'date-fns';
 
-const data = [
-  { name: 'Mon', appointments: 12, revenue: 4500 },
-  { name: 'Tue', appointments: 19, revenue: 5200 },
-  { name: 'Wed', appointments: 15, revenue: 4800 },
-  { name: 'Thu', appointments: 22, revenue: 6100 },
-  { name: 'Fri', appointments: 30, revenue: 7500 },
-  { name: 'Sat', appointments: 10, revenue: 3200 },
-  { name: 'Sun', appointments: 5, revenue: 1500 },
-];
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 const Dashboard: React.FC = () => {
   const { profile } = useAuth();
-  const [serverStats, setServerStats] = useState<{ total_patients: number; total_revenue: number } | null>(null);
+  const [insights, setInsights] = useState<any>(null);
+  const [bookingStatus, setBookingStatus] = useState<any[]>([]);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
+  const [topDoctors, setTopDoctors] = useState<any[]>([]);
+  const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (profile?.clinicId) {
-      api.get(`/api/stats/${profile.clinicId}`)
-        .then(res => setServerStats(res.data))
-        .catch(err => console.error('Failed to fetch server stats', err));
+    const fetchData = async () => {
+      try {
+        const cid = profile?.clinicId || 'default-clinic';
+        const [insightsRes, statusRes, appRes, docRes, payRes] = await Promise.all([
+          api.get(`/api/dashboard/insights/${cid}`),
+          api.get(`/api/dashboard/booking-status/${cid}`),
+          api.get('/api/demo/appointments'),
+          api.get('/api/demo/doctors'),
+          api.get('/api/demo/payments')
+        ]);
+
+        setInsights(insightsRes.data);
+        setBookingStatus(statusRes.data.map((item: any) => ({ name: item.status, value: item.count })));
+        setUpcomingAppointments(appRes.data.slice(0, 4));
+        setTopDoctors(docRes.data.slice(0, 3));
+        setPaymentHistory(payRes.data.slice(0, 5));
+      } catch (err) {
+        console.error('Failed to fetch dashboard data', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (profile) {
+      fetchData();
     }
-  }, [profile?.clinicId]);
+  }, [profile]);
+
+  const renderInsights = () => (
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <InsightCard label="Total Appointments" value={insights?.total_appointments || 0} icon={Calendar} color="text-blue-600" bg="bg-blue-50" />
+      <InsightCard label="Total Patients" value={insights?.total_patients || 0} icon={Users} color="text-purple-600" bg="bg-purple-50" />
+      <InsightCard label="Total Doctors" value={insights?.total_doctors || 0} icon={Stethoscope} color="text-emerald-600" bg="bg-emerald-50" />
+      <InsightCard label="Total Services" value={insights?.total_services || 0} icon={Package} color="text-amber-600" bg="bg-amber-50" />
+      <InsightCard label="Active Services" value={insights?.active_services || 0} icon={Activity} color="text-rose-600" bg="bg-rose-50" />
+      <InsightCard label="Total Revenue" value={`रू ${insights?.total_revenue?.toLocaleString() || 0}`} icon={CreditCard} color="text-indigo-600" bg="bg-indigo-50" />
+    </div>
+  );
 
   const renderSuperAdminDashboard = () => (
     <div className="space-y-8">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Global Analytics</h1>
-        <p className="text-gray-500">Overview of all HomeCare Centers and healthcare providers.</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard label="Total Centers" value="24" change="+2" icon={Activity} color="bg-blue-500" />
-        <StatCard label="Total Doctors" value={serverStats?.total_doctors?.toString() || "168"} change="+12" icon={Stethoscope} color="bg-purple-500" />
-        <StatCard label="Total Patients" value={serverStats?.total_patients?.toLocaleString() || "4,872"} change="+487" icon={UserRound} color="bg-emerald-500" />
-        <StatCard label="Total Revenue" value={`रू ${serverStats?.total_revenue?.toLocaleString() || "1.2M"}`} change="+15%" icon={CreditCard} color="bg-amber-500" />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-900 mb-8">Revenue by Month</h3>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data}>
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                <Tooltip 
-                  contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
-                />
-                <Area type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-bold text-gray-900">Insights</h1>
+          <p className="text-sm text-gray-500">Home &gt; Dashboard</p>
         </div>
-
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-900 mb-8">Appointments Overview</h3>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                <Tooltip 
-                  cursor={{fill: '#f8fafc'}}
-                  contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
-                />
-                <Bar dataKey="appointments" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={32} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+        <div className="flex items-center gap-3">
+          <select className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+            <option>Select Date Range</option>
+          </select>
+          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-all">Apply Filter</button>
         </div>
       </div>
-    </div>
-  );
 
-  const renderDoctorDashboard = () => (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Doctor's Schedule</h1>
-        <p className="text-gray-500">Manage your appointments and patient records.</p>
-      </div>
+      {renderInsights()}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard label="Today's Appointments" value="12" change="Next at 10:30 AM" icon={Calendar} color="bg-blue-500" />
-        <StatCard label="Pending Consultations" value="4" change="High Priority" icon={Clock} color="bg-amber-500" />
-        <StatCard label="Total Earnings" value="रू 12,400" change="+8% this week" icon={CreditCard} color="bg-emerald-500" />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-lg font-bold text-gray-900">Upcoming Appointments</h3>
-            <button className="text-sm text-blue-600 font-semibold hover:underline">View Calendar</button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Upcoming Appointments */}
+        <div className="lg:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-gray-50 flex items-center justify-between">
+            <h3 className="font-bold text-gray-900">Upcoming Appointments</h3>
+            <button className="text-xs text-blue-600 font-semibold hover:underline">View All</button>
           </div>
-          <div className="space-y-4">
-            {[
-              { patient: 'Aarav Sharma', time: '10:30 AM', type: 'Follow-up', status: 'Confirmed' },
-              { patient: 'Priya Thapa', time: '11:15 AM', type: 'New Consultation', status: 'Pending' },
-              { patient: 'Suman Gurung', time: '01:00 PM', type: 'Video Call', status: 'Confirmed' },
-              { patient: 'Maya Rai', time: '02:30 PM', type: 'Routine Checkup', status: 'Confirmed' },
-            ].map((app, i) => (
-              <div key={i} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                    {app.patient[0]}
+          <div className="p-5 space-y-4">
+            {upcomingAppointments.map((app, i) => (
+              <div key={i} className="flex items-center justify-between group cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-xs">
+                    {app.patient_name[0]}
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-gray-900">{app.patient}</p>
-                    <p className="text-xs text-gray-500">{app.type} • {app.time}</p>
+                    <p className="text-sm font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{app.patient_name}</p>
+                    <p className="text-xs text-gray-500">{app.type} • {app.doctor_name}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className={`text-xs font-bold px-2 py-1 rounded-full ${app.status === 'Confirmed' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-                    {app.status}
-                  </span>
-                  <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
-                    <Activity className="w-4 h-4" />
-                  </button>
-                </div>
+                <p className="text-xs font-medium text-gray-400">{app.date}</p>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-900 mb-6">Patient Vitals</h3>
-          <div className="space-y-6">
-            <div className="p-4 bg-blue-50 rounded-xl">
-              <p className="text-xs text-blue-600 font-bold uppercase tracking-wider mb-1">Last Patient</p>
-              <p className="text-sm font-bold text-gray-900">Aarav Sharma</p>
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <div>
-                  <p className="text-[10px] text-gray-500 uppercase">BP</p>
-                  <p className="text-sm font-bold text-gray-900">120/80</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-gray-500 uppercase">Temp</p>
-                  <p className="text-sm font-bold text-gray-900">98.6°F</p>
-                </div>
-              </div>
-            </div>
-            <button className="w-full py-3 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-gray-800 transition-all">
-              Start New Encounter
-            </button>
+        {/* Top Doctors */}
+        <div className="lg:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-gray-50 flex items-center justify-between">
+            <h3 className="font-bold text-gray-900">Top Doctors</h3>
+            <button className="text-xs text-blue-600 font-semibold hover:underline">View All</button>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderPatientDashboard = () => (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">My Health Portal</h1>
-        <p className="text-gray-500">Welcome back, {profile?.displayName}. Your health is our priority.</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 bg-blue-600 p-8 rounded-3xl text-white relative overflow-hidden shadow-xl shadow-blue-200">
-          <div className="relative z-10">
-            <h2 className="text-2xl font-bold mb-2">Book Your Next Consultation</h2>
-            <p className="text-blue-100 mb-6 max-w-md">Find the best specialists and book an appointment in just a few clicks.</p>
-            <button className="px-6 py-3 bg-white text-blue-600 rounded-xl font-bold hover:bg-blue-50 transition-all shadow-lg">
-              Find a Doctor
-            </button>
-          </div>
-          <Activity className="absolute -right-8 -bottom-8 w-48 h-48 text-blue-500 opacity-20" />
-        </div>
-
-        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-900 mb-6">Upcoming</h3>
-          <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white">
-                <Calendar className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-xs text-emerald-600 font-bold">Tomorrow</p>
-                <p className="text-sm font-bold text-gray-900">Dr. Jeffrey Williams</p>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mb-4">General Consultation • 10:00 AM</p>
-            <button className="w-full py-2 bg-emerald-500 text-white rounded-lg text-xs font-bold hover:bg-emerald-600 transition-all">
-              Join Video Call
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-900 mb-8">Medical History</h3>
-          <div className="space-y-4">
-            {[
-              { date: 'Mar 15, 2026', doctor: 'Dr. Sarah Smith', type: 'Blood Test', result: 'Normal' },
-              { date: 'Feb 20, 2026', doctor: 'Dr. Jeffrey Williams', type: 'General Checkup', result: 'Completed' },
-              { date: 'Jan 10, 2026', doctor: 'Dr. Mike Ross', type: 'X-Ray', result: 'View Report' },
-            ].map((record, i) => (
-              <div key={i} className="flex items-center justify-between p-4 border-b border-gray-50 last:border-0">
-                <div>
-                  <p className="text-sm font-bold text-gray-900">{record.type}</p>
-                  <p className="text-xs text-gray-500">{record.doctor} • {record.date}</p>
-                </div>
-                <button className="text-xs font-bold text-blue-600 hover:underline">{record.result}</button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-900 mb-6">Recent Invoices</h3>
-          <div className="space-y-4">
-            {[
-              { id: 'INV-204', amount: 'रू 1,500', date: 'Mar 15', status: 'Paid' },
-              { id: 'INV-198', amount: 'रू 2,200', date: 'Feb 20', status: 'Paid' },
-            ].map((inv, i) => (
+          <div className="p-5 space-y-4">
+            {topDoctors.map((doc, i) => (
               <div key={i} className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-bold text-gray-900">{inv.id}</p>
-                  <p className="text-xs text-gray-500">{inv.date}</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-xs">
+                    {doc.name[0]}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">{doc.name}</p>
+                    <p className="text-xs text-gray-500">{doc.specialty}</p>
+                  </div>
                 </div>
-                <p className="text-sm font-bold text-gray-900">{inv.amount}</p>
+                <p className="text-xs font-bold text-gray-400">4 Appointments</p>
               </div>
             ))}
-            <button className="w-full mt-4 py-3 border-2 border-gray-100 text-gray-600 rounded-xl text-sm font-bold hover:bg-gray-50 transition-all">
-              View All Billing
-            </button>
           </div>
+        </div>
+
+        {/* Booking Status */}
+        <div className="lg:col-span-1 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-gray-50">
+            <h3 className="font-bold text-gray-900">Booking Status</h3>
+          </div>
+          <div className="p-5 h-[250px] flex flex-col items-center justify-center">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={bookingStatus.length > 0 ? bookingStatus : [{name: 'No Data', value: 1}]}
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {bookingStatus.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend verticalAlign="bottom" height={36}/>
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Payment History */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-gray-50 flex items-center justify-between">
+          <h3 className="font-bold text-gray-900">Payment History</h3>
+          <button className="text-xs text-blue-600 font-semibold hover:underline">View All</button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-gray-50 text-gray-400 text-[10px] font-bold uppercase tracking-wider">
+                <th className="px-6 py-3">Patient</th>
+                <th className="px-6 py-3">Date And Time</th>
+                <th className="px-6 py-3">Doctor</th>
+                <th className="px-6 py-3">Clinic</th>
+                <th className="px-6 py-3">Services</th>
+                <th className="px-6 py-3">Charges</th>
+                <th className="px-6 py-3">Payment Mode</th>
+                <th className="px-6 py-3">Status</th>
+                <th className="px-6 py-3">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {paymentHistory.map((pay, i) => (
+                <tr key={i} className="text-sm hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-[10px]">
+                        {pay.patient_id[0]}
+                      </div>
+                      <span className="font-bold text-gray-900">Patient {pay.patient_id}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-gray-500">{pay.created_at}</td>
+                  <td className="px-6 py-4 text-gray-500">Dr. Jeffrey Williams</td>
+                  <td className="px-6 py-4 text-gray-500">Main Center</td>
+                  <td className="px-6 py-4 text-gray-500">General Consultation</td>
+                  <td className="px-6 py-4 font-bold text-gray-900">रू {pay.amount}</td>
+                  <td className="px-6 py-4 text-gray-500">{pay.payment_method}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${pay.status === 'Paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                      {pay.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <button className="p-1 text-gray-400 hover:text-blue-600 transition-colors">
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   );
 
-  const renderDefaultDashboard = () => (
-    <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-      <div className="w-20 h-20 bg-blue-100 rounded-3xl flex items-center justify-center text-blue-600 mb-6">
-        <Activity className="w-10 h-10" />
+  const renderCalendarDashboard = (title: string) => (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+          <p className="text-sm text-gray-500">Home &gt; Dashboard</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <select className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+            <option>Select Date Range</option>
+          </select>
+          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-all">Apply Filter</button>
+        </div>
       </div>
-      <h2 className="text-2xl font-bold text-gray-900">Welcome to Dr. Sathi HomeCare</h2>
-      <p className="text-gray-500 mt-2 max-w-md">Your role is being configured. Please contact your administrator if this takes too long.</p>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <InsightCard label="Total Appointments" value={insights?.total_appointments || 0} icon={Calendar} color="text-blue-600" bg="bg-blue-50" />
+        <InsightCard label="Total Patients" value={insights?.total_patients || 0} icon={Users} color="text-purple-600" bg="bg-purple-50" />
+        <InsightCard label="Active Services" value={insights?.active_services || 0} icon={Activity} color="text-rose-600" bg="bg-rose-50" />
+        <InsightCard label="Today's Appointments" value="0" icon={Clock} color="text-amber-600" bg="bg-amber-50" />
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-gray-50 flex items-center justify-between">
+          <h3 className="font-bold text-gray-900">Appointment Calendar</h3>
+          <button className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 transition-all flex items-center gap-2">
+            <Filter className="w-3 h-3" /> Filter
+          </button>
+        </div>
+        <div className="p-5">
+          {/* Mock Calendar Grid */}
+          <div className="grid grid-cols-7 border-t border-l border-gray-100">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+              <div key={day} className="p-3 text-center text-xs font-bold text-gray-400 border-r border-b border-gray-100 bg-gray-50 uppercase tracking-wider">
+                {day}
+              </div>
+            ))}
+            {Array.from({length: 31}).map((_, i) => (
+              <div key={i} className="min-h-[100px] p-2 border-r border-b border-gray-100 text-xs text-gray-400 relative">
+                {i + 1}
+                {i === 15 && (
+                  <div className="absolute bottom-2 left-2 right-2 bg-emerald-500 text-white p-1 rounded text-[8px] font-bold truncate">
+                    Dr. Jeffrey Williams - Patient Aarav Sharma
+                  </div>
+                )}
+                {i === 20 && (
+                  <div className="absolute bottom-2 left-2 right-2 bg-blue-500 text-white p-1 rounded text-[8px] font-bold truncate">
+                    Dr. Sarah Smith - Patient Priya Thapa
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 
   const getDashboard = () => {
+    if (loading) return <div className="flex items-center justify-center h-[60vh]"><Activity className="w-10 h-10 text-blue-600 animate-spin" /></div>;
+
     switch (profile?.role) {
       case 'super_admin': return renderSuperAdminDashboard();
-      case 'doctor': return renderDoctorDashboard();
-      case 'patient': return renderPatientDashboard();
-      case 'clinic_admin': return renderSuperAdminDashboard(); // Similar for now
-      case 'receptionist': return renderDoctorDashboard(); // Similar for now
-      default: return renderDefaultDashboard();
+      case 'clinic_admin': return renderSuperAdminDashboard();
+      case 'doctor': return renderCalendarDashboard("Doctor's Dashboard");
+      case 'patient': return renderCalendarDashboard("Patient's Dashboard");
+      case 'receptionist': return renderCalendarDashboard("Receptionist's Dashboard");
+      default: return renderSuperAdminDashboard();
     }
   };
 
   return getDashboard();
 };
 
-const StatCard: React.FC<{ label: string; value: string; change: string; icon: any; color: string }> = ({ label, value, change, icon: Icon, color }) => (
-  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-4 group hover:shadow-md transition-all">
-    <div className="flex items-center justify-between">
-      <div className={`w-12 h-12 ${color} rounded-xl flex items-center justify-center text-white shadow-lg shadow-${color.split('-')[1]}-200 group-hover:scale-110 transition-transform`}>
-        <Icon className="w-6 h-6" />
-      </div>
-      <span className={`text-xs font-bold px-2 py-1 rounded-full ${change.startsWith('+') ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-50 text-gray-500'}`}>
-        {change}
-      </span>
+const InsightCard: React.FC<{ label: string; value: string | number; icon: any; color: string; bg: string }> = ({ label, value, icon: Icon, color, bg }) => (
+  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center text-center gap-3">
+    <div className={`w-10 h-10 ${bg} ${color} rounded-xl flex items-center justify-center`}>
+      <Icon className="w-5 h-5" />
     </div>
     <div>
-      <p className="text-sm font-medium text-gray-500">{label}</p>
-      <h3 className="text-2xl font-bold text-gray-900 mt-1">{value}</h3>
+      <h3 className="text-xl font-bold text-gray-900">{value}</h3>
+      <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mt-1">{label}</p>
     </div>
   </div>
+);
+
+const Filter: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+  </svg>
 );
 
 export default Dashboard;

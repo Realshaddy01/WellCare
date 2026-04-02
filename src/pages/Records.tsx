@@ -7,9 +7,10 @@ const Records: React.FC = () => {
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<any>(null);
   const [patients, setPatients] = useState<any[]>([]);
   const [doctors, setDoctors] = useState<any[]>([]);
-  const [newRecord, setNewRecord] = useState({
+  const [formData, setFormData] = useState({
     patient_id: '',
     doctor_name: '',
     date: new Date().toISOString().split('T')[0],
@@ -19,6 +20,7 @@ const Records: React.FC = () => {
   });
 
   const fetchData = async () => {
+    setLoading(true);
     try {
       const [recRes, patRes, docRes] = await Promise.all([
         api.get('/api/demo/records'),
@@ -39,19 +41,51 @@ const Records: React.FC = () => {
     fetchData();
   }, []);
 
-  const handleAddRecord = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const patient = patients.find(p => p.id === newRecord.patient_id);
+    const patient = patients.find(p => p.id === formData.patient_id);
     try {
-      await api.post('/api/demo/records', {
-        ...newRecord,
-        patient_name: patient?.name
-      });
-      toast.success('Medical record added successfully');
+      if (editingRecord) {
+        await api.post('/api/demo/records', {
+          ...formData,
+          id: editingRecord.id,
+          patient_name: patient?.name || editingRecord.patient_name
+        });
+        toast.success('Medical record updated successfully');
+      } else {
+        await api.post('/api/demo/records', {
+          ...formData,
+          patient_name: patient?.name
+        });
+        toast.success('Medical record added successfully');
+      }
       setShowModal(false);
+      setEditingRecord(null);
       fetchData();
     } catch (err) {
-      toast.error('Failed to add record');
+      toast.error('Failed to save record');
+    }
+  };
+
+  const handleEdit = (record: any) => {
+    setEditingRecord(record);
+    setFormData({
+      patient_id: record.patient_id?.toString() || '',
+      doctor_name: record.doctor_name,
+      date: record.date,
+      diagnosis: record.diagnosis,
+      prescription: record.prescription,
+      notes: record.notes || ''
+    });
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this record?')) return;
+    try {
+      toast.info('Delete functionality is being configured');
+    } catch (err) {
+      toast.error('Failed to delete record');
     }
   };
 
@@ -64,7 +98,7 @@ const Records: React.FC = () => {
         </div>
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => setShowModal(true)}
+            onClick={() => { setEditingRecord(null); setShowModal(true); }}
             className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-100"
           >
             <Plus className="w-4 h-4" />
@@ -119,10 +153,16 @@ const Records: React.FC = () => {
                       <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
                         <Eye className="w-4 h-4" />
                       </button>
-                      <button className="p-2 text-gray-400 hover:text-emerald-600 transition-colors">
+                      <button 
+                        onClick={() => handleEdit(rec)}
+                        className="p-2 text-gray-400 hover:text-emerald-600 transition-colors"
+                      >
                         <FileEdit className="w-4 h-4" />
                       </button>
-                      <button className="p-2 text-gray-400 hover:text-red-600 transition-colors">
+                      <button 
+                        onClick={() => handleDelete(rec.id)}
+                        className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                      >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -134,23 +174,23 @@ const Records: React.FC = () => {
         </div>
       </div>
 
-      {/* New Encounter Modal */}
+      {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl">
             <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900">New Medical Encounter</h2>
+              <h2 className="text-xl font-bold text-gray-900">{editingRecord ? 'Edit Medical Encounter' : 'New Medical Encounter'}</h2>
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
-            <form onSubmit={handleAddRecord} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Patient</label>
                 <select 
                   required
-                  value={newRecord.patient_id}
-                  onChange={e => setNewRecord({...newRecord, patient_id: e.target.value})}
+                  value={formData.patient_id}
+                  onChange={e => setFormData({...formData, patient_id: e.target.value})}
                   className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select patient</option>
@@ -161,8 +201,8 @@ const Records: React.FC = () => {
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Doctor</label>
                 <select 
                   required
-                  value={newRecord.doctor_name}
-                  onChange={e => setNewRecord({...newRecord, doctor_name: e.target.value})}
+                  value={formData.doctor_name}
+                  onChange={e => setFormData({...formData, doctor_name: e.target.value})}
                   className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select doctor</option>
@@ -175,8 +215,8 @@ const Records: React.FC = () => {
                   <input 
                     required
                     type="text" 
-                    value={newRecord.diagnosis}
-                    onChange={e => setNewRecord({...newRecord, diagnosis: e.target.value})}
+                    value={formData.diagnosis}
+                    onChange={e => setFormData({...formData, diagnosis: e.target.value})}
                     className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -184,15 +224,17 @@ const Records: React.FC = () => {
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Prescription</label>
                   <textarea 
                     required
-                    value={newRecord.prescription}
-                    onChange={e => setNewRecord({...newRecord, prescription: e.target.value})}
+                    value={formData.prescription}
+                    onChange={e => setFormData({...formData, prescription: e.target.value})}
                     className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 h-24"
                   />
                 </div>
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl text-sm font-bold hover:bg-gray-200 transition-all">Cancel</button>
-                <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">Save Record</button>
+                <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">
+                  {editingRecord ? 'Update' : 'Save Record'}
+                </button>
               </div>
             </form>
           </div>

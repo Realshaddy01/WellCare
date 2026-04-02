@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar as CalendarIcon, Plus, Search, Filter, ChevronLeft, ChevronRight, Video, MapPin, Clock, X } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, Search, Filter, ChevronLeft, ChevronRight, Video, MapPin, Clock, X, Trash2, Edit2 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO } from 'date-fns';
 import api from '../lib/api';
 import { toast } from 'sonner';
@@ -10,15 +10,17 @@ const Appointments: React.FC = () => {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [editingAppointment, setEditingAppointment] = useState<any>(null);
   const [doctors, setDoctors] = useState<any[]>([]);
   const [patients, setPatients] = useState<any[]>([]);
-  const [newAppointment, setNewAppointment] = useState({
+  const [formData, setFormData] = useState({
     doctor_id: '',
     patient_id: '',
     date: format(new Date(), 'yyyy-MM-dd'),
     time: '10:00 AM',
     type: 'In-person',
-    amount: 1000
+    amount: 1000,
+    status: 'Pending'
   });
 
   const monthStart = startOfMonth(currentDate);
@@ -32,6 +34,7 @@ const Appointments: React.FC = () => {
   });
 
   const fetchData = async () => {
+    setLoading(true);
     try {
       const [appRes, docRes, patRes] = await Promise.all([
         api.get('/api/demo/appointments'),
@@ -52,22 +55,56 @@ const Appointments: React.FC = () => {
     fetchData();
   }, []);
 
-  const handleBookAppointment = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const doctor = doctors.find(d => d.id === newAppointment.doctor_id);
-    const patient = patients.find(p => p.id === newAppointment.patient_id);
+    const doctor = doctors.find(d => d.id === formData.doctor_id);
+    const patient = patients.find(p => p.id === formData.patient_id);
     
     try {
-      await api.post('/api/demo/appointments', {
-        ...newAppointment,
-        doctor_name: doctor?.name,
-        patient_name: patient?.name
-      });
-      toast.success('Appointment booked successfully');
+      if (editingAppointment) {
+        await api.post('/api/demo/appointments', {
+          ...formData,
+          id: editingAppointment.id,
+          doctor_name: doctor?.name || editingAppointment.doctor_name,
+          patient_name: patient?.name || editingAppointment.patient_name
+        });
+        toast.success('Appointment updated successfully');
+      } else {
+        await api.post('/api/demo/appointments', {
+          ...formData,
+          doctor_name: doctor?.name,
+          patient_name: patient?.name
+        });
+        toast.success('Appointment booked successfully');
+      }
       setShowModal(false);
+      setEditingAppointment(null);
       fetchData();
     } catch (err) {
-      toast.error('Failed to book appointment');
+      toast.error('Failed to save appointment');
+    }
+  };
+
+  const handleEdit = (app: any) => {
+    setEditingAppointment(app);
+    setFormData({
+      doctor_id: app.doctor_id?.toString() || '',
+      patient_id: app.patient_id?.toString() || '',
+      date: app.date,
+      time: app.time,
+      type: app.type,
+      amount: app.amount || 1000,
+      status: app.status
+    });
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this appointment?')) return;
+    try {
+      toast.info('Delete functionality is being configured');
+    } catch (err) {
+      toast.error('Failed to delete appointment');
     }
   };
 
@@ -86,7 +123,7 @@ const Appointments: React.FC = () => {
             {view === 'calendar' ? 'List View' : 'Calendar View'}
           </button>
           <button 
-            onClick={() => setShowModal(true)}
+            onClick={() => { setEditingAppointment(null); setShowModal(true); }}
             className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-100"
           >
             <Plus className="w-4 h-4" />
@@ -129,6 +166,11 @@ const Appointments: React.FC = () => {
                   className={`min-h-[120px] p-2 border-r border-b border-gray-50 transition-colors hover:bg-gray-50/50 cursor-pointer ${
                     !isSameMonth(day, monthStart) ? 'bg-gray-50/30' : ''
                   }`}
+                  onClick={() => {
+                    setFormData({...formData, date: format(day, 'yyyy-MM-dd')});
+                    setEditingAppointment(null);
+                    setShowModal(true);
+                  }}
                 >
                   <div className="flex justify-between items-center mb-2">
                     <span className={`text-sm font-medium ${
@@ -143,6 +185,7 @@ const Appointments: React.FC = () => {
                     {dayAppointments.map((app) => (
                       <div 
                         key={app.id} 
+                        onClick={(e) => { e.stopPropagation(); handleEdit(app); }}
                         className={`text-[10px] p-1.5 rounded-lg border truncate ${
                           app.type.toLowerCase().includes('video') 
                             ? 'bg-blue-50 border-blue-100 text-blue-700' 
@@ -187,7 +230,7 @@ const Appointments: React.FC = () => {
                 {loading ? (
                   <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500">Loading appointments...</td></tr>
                 ) : appointments.map((app) => (
-                  <tr key={app.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={app.id} className="hover:bg-gray-50 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
@@ -217,7 +260,20 @@ const Appointments: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <button className="text-blue-600 text-sm font-bold hover:underline">View Details</button>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => handleEdit(app)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(app.id)}
+                          className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -227,23 +283,23 @@ const Appointments: React.FC = () => {
         </div>
       )}
 
-      {/* Book Appointment Modal */}
+      {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl">
             <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900">Book Appointment</h2>
+              <h2 className="text-xl font-bold text-gray-900">{editingAppointment ? 'Edit Appointment' : 'Book Appointment'}</h2>
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
-            <form onSubmit={handleBookAppointment} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Select Doctor</label>
                 <select 
                   required
-                  value={newAppointment.doctor_id}
-                  onChange={e => setNewAppointment({...newAppointment, doctor_id: e.target.value})}
+                  value={formData.doctor_id}
+                  onChange={e => setFormData({...formData, doctor_id: e.target.value})}
                   className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Choose a doctor</option>
@@ -254,8 +310,8 @@ const Appointments: React.FC = () => {
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Select Patient</label>
                 <select 
                   required
-                  value={newAppointment.patient_id}
-                  onChange={e => setNewAppointment({...newAppointment, patient_id: e.target.value})}
+                  value={formData.patient_id}
+                  onChange={e => setFormData({...formData, patient_id: e.target.value})}
                   className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Choose a patient</option>
@@ -268,8 +324,8 @@ const Appointments: React.FC = () => {
                   <input 
                     required
                     type="date" 
-                    value={newAppointment.date}
-                    onChange={e => setNewAppointment({...newAppointment, date: e.target.value})}
+                    value={formData.date}
+                    onChange={e => setFormData({...formData, date: e.target.value})}
                     className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -279,26 +335,43 @@ const Appointments: React.FC = () => {
                     required
                     type="text" 
                     placeholder="e.g. 10:30 AM"
-                    value={newAppointment.time}
-                    onChange={e => setNewAppointment({...newAppointment, time: e.target.value})}
+                    value={formData.time}
+                    onChange={e => setFormData({...formData, time: e.target.value})}
                     className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Appointment Type</label>
-                <select 
-                  value={newAppointment.type}
-                  onChange={e => setNewAppointment({...newAppointment, type: e.target.value})}
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option>In-person</option>
-                  <option>Video</option>
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Appointment Type</label>
+                  <select 
+                    value={formData.type}
+                    onChange={e => setFormData({...formData, type: e.target.value})}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option>In-person</option>
+                    <option>Video</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
+                  <select 
+                    value={formData.status}
+                    onChange={e => setFormData({...formData, status: e.target.value})}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option>Pending</option>
+                    <option>Confirmed</option>
+                    <option>Cancelled</option>
+                    <option>Completed</option>
+                  </select>
+                </div>
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl text-sm font-bold hover:bg-gray-200 transition-all">Cancel</button>
-                <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">Book Now</button>
+                <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">
+                  {editingAppointment ? 'Update' : 'Book Now'}
+                </button>
               </div>
             </form>
           </div>

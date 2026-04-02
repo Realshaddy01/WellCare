@@ -36,6 +36,7 @@ const Sidebar: React.FC<{ isOpen: boolean; toggle: () => void }> = ({ isOpen, to
     { name: 'Dashboard', icon: LayoutDashboard, path: '/', roles: ['super_admin', 'clinic_admin', 'doctor', 'receptionist', 'patient'] },
     { name: 'Centers', icon: Home, path: '/clinics', roles: ['super_admin'] },
     { name: 'Doctors', icon: Stethoscope, path: '/doctors', roles: ['super_admin', 'clinic_admin', 'patient'] },
+    { name: 'Services', icon: Activity, path: '/services', roles: ['super_admin', 'clinic_admin', 'doctor', 'receptionist', 'patient'] },
     { name: 'Patients', icon: UserRound, path: '/patients', roles: ['super_admin', 'clinic_admin', 'doctor', 'receptionist'] },
     { name: 'Appointments', icon: Calendar, path: '/appointments', roles: ['super_admin', 'clinic_admin', 'doctor', 'receptionist', 'patient'] },
     { name: 'EMR / Records', icon: FileText, path: '/records', roles: ['super_admin', 'clinic_admin', 'doctor', 'patient'] },

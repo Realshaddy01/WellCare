@@ -5,6 +5,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Doctors from './pages/Doctors';
+import Services from './pages/Services';
 import Patients from './pages/Patients';
 import Appointments from './pages/Appointments';
 import Billing from './pages/Billing';
@@ -23,6 +24,16 @@ const Placeholder = ({ title }: { title: string }) => (
 
 import { Activity } from 'lucide-react';
 
+import Clinics from './pages/Clinics';
+
+import Inventory from './pages/Inventory';
+import LabTests from './pages/LabTests';
+import Pharmacy from './pages/Pharmacy';
+
+import Settings from './pages/Settings';
+
+import Notifications from './pages/Notifications';
+
 export default function App() {
   return (
     <AuthProvider>
@@ -32,17 +43,18 @@ export default function App() {
           <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route index element={<Dashboard />} />
             <Route path="dashboard" element={<Dashboard />} />
-            <Route path="clinics" element={<Placeholder title="Clinics" />} />
+            <Route path="clinics" element={<Clinics />} />
             <Route path="doctors" element={<Doctors />} />
+            <Route path="services" element={<Services />} />
             <Route path="patients" element={<Patients />} />
             <Route path="appointments" element={<Appointments />} />
             <Route path="records" element={<Records />} />
             <Route path="billing" element={<Billing />} />
-            <Route path="inventory" element={<Placeholder title="Inventory" />} />
-            <Route path="lab" element={<Placeholder title="Lab Tests" />} />
-            <Route path="pharmacy" element={<Placeholder title="Pharmacy" />} />
-            <Route path="notifications" element={<Placeholder title="Notifications" />} />
-            <Route path="settings" element={<Placeholder title="Settings" />} />
+            <Route path="inventory" element={<Inventory />} />
+            <Route path="lab" element={<LabTests />} />
+            <Route path="pharmacy" element={<Pharmacy />} />
+            <Route path="notifications" element={<Notifications />} />
+            <Route path="settings" element={<Settings />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

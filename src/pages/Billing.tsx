@@ -1,36 +1,106 @@
-import React, { useState } from 'react';
-import { Search, Plus, Filter, CreditCard, Download, ExternalLink, CheckCircle2, Clock, AlertCircle, Wallet } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Search, Plus, Filter, CreditCard, Download, ExternalLink, CheckCircle2, Clock, AlertCircle, Wallet, X, Trash2, Edit2 } from 'lucide-react';
 import api from '../lib/api';
 import { toast } from 'sonner';
 
 const Billing: React.FC = () => {
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isPaying, setIsPaying] = useState(false);
-  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [editingInvoice, setEditingInvoice] = useState<any>(null);
+  const [patients, setPatients] = useState<any[]>([]);
+  const [formData, setFormData] = useState({
+    patient_id: '',
+    amount: '',
+    date: new Date().toISOString().split('T')[0],
+    status: 'Unpaid',
+    method: '-'
+  });
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [invRes, patRes] = await Promise.all([
+        api.get('/api/demo/payments'), // Using payments as invoices for now
+        api.get('/api/demo/patients')
+      ]);
+      setInvoices(invRes.data);
+      setPatients(patRes.data);
+    } catch (err) {
+      toast.error('Failed to fetch billing data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const handleKhaltiPayment = async (invoice: any) => {
     setIsPaying(true);
-    // In a real app, you'd trigger the Khalti SDK here.
-    // For this demo, we'll simulate a successful payment and verify it on the server.
     try {
       toast.info('Simulating Khalti Payment...');
-      // Simulate server-side verification
       const res = await api.post('/api/payments/verify/khalti', {
         token: 'fake-token-123',
-        amount: 1000 // amount in paisa
+        amount: parseInt(invoice.amount.replace(/[^0-9]/g, '')) * 100
       });
       toast.success('Payment verified successfully via Dr. Sathi HomeCare Hosting Server!');
+      fetchData();
     } catch (err) {
       toast.error('Payment verification failed on server.');
     } finally {
       setIsPaying(false);
     }
   };
-  const invoices = [
-    { id: 'INV-204', patient: 'Aarav Sharma', amount: 'रू 1,500', date: 'Mar 15, 2026', status: 'Paid', method: 'Khalti' },
-    { id: 'INV-205', patient: 'Priya Thapa', amount: 'रू 2,200', date: 'Mar 20, 2026', status: 'Unpaid', method: '-' },
-    { id: 'INV-206', patient: 'Suman Gurung', amount: 'रू 800', date: 'Mar 22, 2026', status: 'Partially Paid', method: 'Cash' },
-    { id: 'INV-207', patient: 'Maya Rai', amount: 'रू 3,500', date: 'Mar 25, 2026', status: 'Paid', method: 'eSewa' },
-  ];
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const patient = patients.find(p => p.id === formData.patient_id);
+    try {
+      if (editingInvoice) {
+        await api.post('/api/demo/payments', {
+          ...formData,
+          id: editingInvoice.id,
+          patient_name: patient?.name || editingInvoice.patient_name
+        });
+        toast.success('Invoice updated successfully');
+      } else {
+        await api.post('/api/demo/payments', {
+          ...formData,
+          patient_name: patient?.name
+        });
+        toast.success('Invoice created successfully');
+      }
+      setShowModal(false);
+      setEditingInvoice(null);
+      fetchData();
+    } catch (err) {
+      toast.error('Failed to save invoice');
+    }
+  };
+
+  const handleEdit = (inv: any) => {
+    setEditingInvoice(inv);
+    setFormData({
+      patient_id: inv.patient_id?.toString() || '',
+      amount: inv.amount.replace(/[^0-9]/g, ''),
+      date: inv.date,
+      status: inv.status,
+      method: inv.method
+    });
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this invoice?')) return;
+    try {
+      toast.info('Delete functionality is being configured');
+    } catch (err) {
+      toast.error('Failed to delete invoice');
+    }
+  };
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -62,7 +132,10 @@ const Billing: React.FC = () => {
             <Download className="w-4 h-4" />
             Export Report
           </button>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-100">
+          <button 
+            onClick={() => { setEditingInvoice(null); setShowModal(true); }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-100"
+          >
             <Plus className="w-4 h-4" />
             Create Invoice
           </button>
@@ -93,12 +166,6 @@ const Billing: React.FC = () => {
               className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
-              <Filter className="w-4 h-4" />
-              Filter
-            </button>
-          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -115,12 +182,14 @@ const Billing: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {invoices.map((inv) => (
-                <tr key={inv.id} className="hover:bg-gray-50 transition-colors">
+              {loading ? (
+                <tr><td colSpan={7} className="px-6 py-12 text-center text-gray-500">Loading invoices...</td></tr>
+              ) : invoices.map((inv) => (
+                <tr key={inv.id} className="hover:bg-gray-50 transition-colors group">
                   <td className="px-6 py-4">
                     <span className="text-sm font-bold text-blue-600">{inv.id}</span>
                   </td>
-                  <td className="px-6 py-4 text-sm font-bold text-gray-900">{inv.patient}</td>
+                  <td className="px-6 py-4 text-sm font-bold text-gray-900">{inv.patient_name || inv.patient}</td>
                   <td className="px-6 py-4 text-sm font-bold text-gray-900">{inv.amount}</td>
                   <td className="px-6 py-4 text-sm text-gray-500">{inv.date}</td>
                   <td className="px-6 py-4">
@@ -136,7 +205,7 @@ const Billing: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       {inv.status === 'Unpaid' && (
                         <button 
                           onClick={() => handleKhaltiPayment(inv)}
@@ -147,11 +216,17 @@ const Billing: React.FC = () => {
                           Pay Khalti
                         </button>
                       )}
-                      <button className="text-gray-400 hover:text-blue-600 transition-colors">
-                        <ExternalLink className="w-4 h-4" />
+                      <button 
+                        onClick={() => handleEdit(inv)}
+                        className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                      >
+                        <Edit2 className="w-4 h-4" />
                       </button>
-                      <button className="text-gray-400 hover:text-blue-600 transition-colors">
-                        <Download className="w-4 h-4" />
+                      <button 
+                        onClick={() => handleDelete(inv.id)}
+                        className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </td>
@@ -161,6 +236,90 @@ const Billing: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">{editingInvoice ? 'Edit Invoice' : 'Create New Invoice'}</h2>
+              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Patient</label>
+                <select 
+                  required
+                  value={formData.patient_id}
+                  onChange={e => setFormData({...formData, patient_id: e.target.value})}
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select patient</option>
+                  {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Amount (NPR)</label>
+                  <input 
+                    required
+                    type="number" 
+                    value={formData.amount}
+                    onChange={e => setFormData({...formData, amount: e.target.value})}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Date</label>
+                  <input 
+                    required
+                    type="date" 
+                    value={formData.date}
+                    onChange={e => setFormData({...formData, date: e.target.value})}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
+                  <select 
+                    value={formData.status}
+                    onChange={e => setFormData({...formData, status: e.target.value})}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option>Unpaid</option>
+                    <option>Paid</option>
+                    <option>Partially Paid</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Method</label>
+                  <select 
+                    value={formData.method}
+                    onChange={e => setFormData({...formData, method: e.target.value})}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option>-</option>
+                    <option>Khalti</option>
+                    <option>eSewa</option>
+                    <option>Cash</option>
+                    <option>Bank Transfer</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl text-sm font-bold hover:bg-gray-200 transition-all">Cancel</button>
+                <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">
+                  {editingInvoice ? 'Update' : 'Create Invoice'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -42,57 +42,41 @@ async function initDB() {
       db = new Database('wellcare.db');
       console.log('Successfully connected to SQLite.');
       db.exec(`
-        CREATE TABLE IF NOT EXISTS clinic_stats (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          clinic_id TEXT,
-          total_patients INTEGER DEFAULT 0,
-          total_revenue REAL DEFAULT 0,
-          total_doctors INTEGER DEFAULT 0,
-          total_appointments INTEGER DEFAULT 0,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE TABLE IF NOT EXISTS demo_data (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          type TEXT,
-          data JSON,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE TABLE IF NOT EXISTS appointments (
-          id TEXT PRIMARY KEY,
-          clinic_id TEXT,
-          doctor_id TEXT,
-          patient_id TEXT,
-          patient_name TEXT,
-          doctor_name TEXT,
-          date TEXT,
-          time TEXT,
-          type TEXT,
-          status TEXT,
-          amount REAL
-        );
-
-        CREATE TABLE IF NOT EXISTS patients (
+        CREATE TABLE IF NOT EXISTS clinics (
           id TEXT PRIMARY KEY,
           name TEXT,
-          email TEXT,
+          address TEXT,
           phone TEXT,
-          age INTEGER,
-          gender TEXT,
-          blood_group TEXT,
-          address TEXT
+          email TEXT
         );
 
-        CREATE TABLE IF NOT EXISTS medical_records (
+        CREATE TABLE IF NOT EXISTS doctors (
           id TEXT PRIMARY KEY,
+          clinic_id TEXT,
+          name TEXT,
+          specialty TEXT,
+          fees REAL,
+          bio TEXT,
+          availability TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS services (
+          id TEXT PRIMARY KEY,
+          clinic_id TEXT,
+          name TEXT,
+          price REAL,
+          description TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS payments (
+          id TEXT PRIMARY KEY,
+          appointment_id TEXT,
           patient_id TEXT,
-          patient_name TEXT,
-          doctor_name TEXT,
-          date TEXT,
-          diagnosis TEXT,
-          prescription TEXT,
-          notes TEXT
+          clinic_id TEXT,
+          amount REAL,
+          status TEXT,
+          payment_method TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
       `);
 
@@ -105,7 +89,7 @@ async function initDB() {
       if (!columns.includes('total_appointments')) {
         try { db.prepare('ALTER TABLE clinic_stats ADD COLUMN total_appointments INTEGER DEFAULT 0').run(); } catch(e) {}
       }
-      seedSQLiteData();
+      seedData();
     } catch (error) {
       console.error('SQLite is not available. Please ensure better-sqlite3 is installed or use MySQL.');
       process.exit(1);
@@ -113,54 +97,79 @@ async function initDB() {
   }
 }
 
-// Seed initial demo data for SQLite if empty
-const seedSQLiteData = () => {
-  const stats = db.prepare('SELECT COUNT(*) as count FROM clinic_stats').get() as { count: number };
-  if (stats.count === 0) {
+// Seed initial demo data
+const seedData = async () => {
+  let count = 0;
+  if (isMySQL) {
+    const [rows]: any = await db.execute('SELECT COUNT(*) as count FROM clinic_stats');
+    count = rows[0].count;
+  } else {
+    const stats = db.prepare('SELECT COUNT(*) as count FROM clinic_stats').get() as { count: number };
+    count = stats.count;
+  }
+
+  if (count === 0) {
     console.log('Seeding initial data...');
-    db.prepare('INSERT INTO clinic_stats (clinic_id, total_patients, total_revenue, total_doctors, total_appointments) VALUES (?, ?, ?, ?, ?)').run(
-      'default-clinic', 487, 124500.50, 168, 1250
-    );
+    const execute = async (sql: string, params: any[]) => {
+      if (isMySQL) await db.execute(sql, params);
+      else db.prepare(sql).run(...params);
+    };
+
+    await execute('INSERT INTO clinic_stats (clinic_id, total_patients, total_revenue, total_doctors, total_appointments) VALUES (?, ?, ?, ?, ?)', 
+      ['default-clinic', 487, 124500.50, 168, 1250]);
     
-    // Seed doctors
+    await execute('INSERT INTO clinics (id, name, address, phone, email) VALUES (?, ?, ?, ?, ?)',
+      ['default-clinic', 'Dr. Sathi HomeCare Main Center', 'Kathmandu, Nepal', '9800000000', 'info@drsathi.com']);
+
     const doctors = [
-      { id: 'doc-1', name: 'Dr. Jeffrey Williams', specialty: 'Cardiology', fees: 1000, rating: 4.8 },
-      { id: 'doc-2', name: 'Dr. Sarah Smith', specialty: 'Neurology', fees: 1200, rating: 4.9 },
-      { id: 'doc-3', name: 'Dr. Mike Ross', specialty: 'Pediatrics', fees: 800, rating: 4.7 },
+      ['doc-1', 'default-clinic', 'Dr. Jeffrey Williams', 'Cardiology', 1000, 'Expert cardiologist with 15 years experience.', 'Mon-Fri 10am-4pm'],
+      ['doc-2', 'default-clinic', 'Dr. Sarah Smith', 'Neurology', 1200, 'Specialist in neurological disorders.', 'Tue-Sat 11am-5pm'],
+      ['doc-3', 'default-clinic', 'Dr. Mike Ross', 'Pediatrics', 800, 'Experienced pediatrician.', 'Mon-Thu 9am-3pm'],
     ];
-    db.prepare('INSERT INTO demo_data (type, data) VALUES (?, ?)').run('doctors', JSON.stringify(doctors));
+    for (const d of doctors) {
+      await execute('INSERT INTO doctors (id, clinic_id, name, specialty, fees, bio, availability) VALUES (?, ?, ?, ?, ?, ?, ?)', d);
+    }
 
-    // Seed patients
     const patients = [
-      { id: 'pat-1', name: 'Aarav Sharma', email: 'aarav@example.com', phone: '9800000001', age: 28, gender: 'Male', blood_group: 'A+', address: 'Kathmandu' },
-      { id: 'pat-2', name: 'Priya Thapa', email: 'priya@example.com', phone: '9800000002', age: 24, gender: 'Female', blood_group: 'O+', address: 'Pokhara' },
+      ['pat-1', 'Aarav Sharma', 'aarav@example.com', '9800000001', 28, 'Male', 'A+', 'Kathmandu'],
+      ['pat-2', 'Priya Thapa', 'priya@example.com', '9800000002', 24, 'Female', 'O+', 'Pokhara'],
     ];
-    patients.forEach(p => {
-      db.prepare('INSERT INTO patients (id, name, email, phone, age, gender, blood_group, address) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
-        p.id, p.name, p.email, p.phone, p.age, p.gender, p.blood_group, p.address
-      );
-    });
+    for (const p of patients) {
+      await execute('INSERT INTO patients (id, name, email, phone, age, gender, blood_group, address) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', p);
+    }
 
-    // Seed appointments
     const appointments = [
-      { id: 'app-1', clinic_id: 'default-clinic', doctor_id: 'doc-1', patient_id: 'pat-1', patient_name: 'Aarav Sharma', doctor_name: 'Dr. Jeffrey Williams', date: '2026-04-02', time: '10:30 AM', type: 'In-person', status: 'Confirmed', amount: 1000 },
-      { id: 'app-2', clinic_id: 'default-clinic', doctor_id: 'doc-2', patient_id: 'pat-2', patient_name: 'Priya Thapa', doctor_name: 'Dr. Sarah Smith', date: '2026-04-02', time: '11:15 AM', type: 'Video', status: 'Pending', amount: 1200 },
+      ['app-1', 'default-clinic', 'doc-1', 'pat-1', 'Aarav Sharma', 'Dr. Jeffrey Williams', '2026-04-02', '10:30 AM', 'In-person', 'Confirmed', 1000],
+      ['app-2', 'default-clinic', 'doc-2', 'pat-2', 'Priya Thapa', 'Dr. Sarah Smith', '2026-04-02', '11:15 AM', 'Video', 'Pending', 1200],
     ];
-    appointments.forEach(a => {
-      db.prepare('INSERT INTO appointments (id, clinic_id, doctor_id, patient_id, patient_name, doctor_name, date, time, type, status, amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
-        a.id, a.clinic_id, a.doctor_id, a.patient_id, a.patient_name, a.doctor_name, a.date, a.time, a.type, a.status, a.amount
-      );
-    });
+    for (const a of appointments) {
+      await execute('INSERT INTO appointments (id, clinic_id, doctor_id, patient_id, patient_name, doctor_name, date, time, type, status, amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', a);
+    }
 
-    // Seed records
     const records = [
-      { id: 'REC-001', patient_id: 'pat-1', patient_name: 'Aarav Sharma', doctor_name: 'Dr. Jeffrey Williams', date: '2026-03-15', diagnosis: 'Hypertension', prescription: 'Amlodipine 5mg', notes: 'Patient advised to reduce salt intake.' },
+      ['REC-001', 'pat-1', 'Aarav Sharma', 'Dr. Jeffrey Williams', '2026-03-15', 'Hypertension', 'Amlodipine 5mg', 'Patient advised to reduce salt intake.'],
     ];
-    records.forEach(r => {
-      db.prepare('INSERT INTO medical_records (id, patient_id, patient_name, doctor_name, date, diagnosis, prescription, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
-        r.id, r.patient_id, r.patient_name, r.doctor_name, r.date, r.diagnosis, r.prescription, r.notes
-      );
-    });
+    for (const r of records) {
+      await execute('INSERT INTO medical_records (id, patient_id, patient_name, doctor_name, date, diagnosis, prescription, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', r);
+    }
+
+    const services = [
+      ['ser-1', 'default-clinic', 'General Consultation', 500, 'Standard checkup'],
+      ['ser-2', 'default-clinic', 'Follow-up Visit', 300, 'Post-treatment review'],
+      ['ser-3', 'default-clinic', 'Minor Wound Dressing', 800, 'Wound care and dressing'],
+    ];
+    for (const s of services) {
+      await execute('INSERT INTO services (id, clinic_id, name, price, description) VALUES (?, ?, ?, ?, ?)', s);
+    }
+
+    const payments = [
+      ['pay-1', 'app-1', 'pat-1', 'default-clinic', 1000, 'Paid', 'Khalti', '2026-03-25 10:00:00'],
+      ['pay-2', 'app-2', 'pat-2', 'default-clinic', 1200, 'Unpaid', 'Manual', '2026-03-25 11:00:00'],
+    ];
+    for (const p of payments) {
+      await execute('INSERT INTO payments (id, appointment_id, patient_id, clinic_id, amount, status, payment_method, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', p);
+    }
+
     console.log('Initial data seeded successfully.');
   }
 };
@@ -204,20 +213,141 @@ async function startServer() {
 
   app.get('/api/demo/doctors', async (req, res) => {
     try {
-      let row;
+      let rows;
       if (isMySQL) {
-        const [rows] = await db.execute('SELECT data FROM demo_data WHERE type = "doctors"');
-        row = rows[0];
+        [rows] = await db.execute('SELECT * FROM doctors');
       } else {
-        row = db.prepare('SELECT data FROM demo_data WHERE type = "doctors"').get() as { data: string } | undefined;
+        rows = db.prepare('SELECT * FROM doctors').all();
       }
-      
-      if (!row) {
-        return res.json([]);
-      }
-      res.json(typeof row.data === 'string' ? JSON.parse(row.data) : row.data);
+      res.json(rows);
     } catch (error: any) {
       console.error('Error fetching doctors:', error);
+      res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    }
+  });
+
+  app.post('/api/demo/doctors', async (req, res) => {
+    try {
+      const { clinic_id, name, specialty, fees, bio, availability } = req.body;
+      const id = `doc-${Date.now()}`;
+      if (isMySQL) {
+        await db.execute('INSERT INTO doctors (id, clinic_id, name, specialty, fees, bio, availability) VALUES (?, ?, ?, ?, ?, ?, ?)', [
+          id, clinic_id || 'default-clinic', name, specialty, fees, bio, availability
+        ]);
+      } else {
+        db.prepare('INSERT INTO doctors (id, clinic_id, name, specialty, fees, bio, availability) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
+          id, clinic_id || 'default-clinic', name, specialty, fees, bio, availability
+        );
+      }
+      res.status(201).json({ id, name, specialty });
+    } catch (error: any) {
+      console.error('Error creating doctor:', error);
+      res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    }
+  });
+
+  app.get('/api/demo/services', async (req, res) => {
+    try {
+      let rows;
+      if (isMySQL) {
+        [rows] = await db.execute('SELECT * FROM services');
+      } else {
+        rows = db.prepare('SELECT * FROM services').all();
+      }
+      res.json(rows);
+    } catch (error: any) {
+      console.error('Error fetching services:', error);
+      res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    }
+  });
+
+  app.post('/api/demo/services', async (req, res) => {
+    try {
+      const { clinic_id, name, price, description } = req.body;
+      const id = `ser-${Date.now()}`;
+      if (isMySQL) {
+        await db.execute('INSERT INTO services (id, clinic_id, name, price, description) VALUES (?, ?, ?, ?, ?)', [
+          id, clinic_id || 'default-clinic', name, price, description
+        ]);
+      } else {
+        db.prepare('INSERT INTO services (id, clinic_id, name, price, description) VALUES (?, ?, ?, ?, ?)').run(
+          id, clinic_id || 'default-clinic', name, price, description
+        );
+      }
+      res.status(201).json({ id, name, price });
+    } catch (error: any) {
+      console.error('Error creating service:', error);
+      res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    }
+  });
+
+  app.get('/api/demo/payments', async (req, res) => {
+    try {
+      let rows;
+      if (isMySQL) {
+        [rows] = await db.execute('SELECT * FROM payments ORDER BY created_at DESC');
+      } else {
+        rows = db.prepare('SELECT * FROM payments ORDER BY created_at DESC').all();
+      }
+      res.json(rows);
+    } catch (error: any) {
+      console.error('Error fetching payments:', error);
+      res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    }
+  });
+
+  app.get('/api/dashboard/insights/:clinicId', async (req, res) => {
+    try {
+      const { clinicId } = req.params;
+      const cid = clinicId === 'undefined' ? 'default-clinic' : clinicId;
+      
+      let stats: any = {};
+      if (isMySQL) {
+        const [patients]: any = await db.execute('SELECT COUNT(*) as count FROM patients');
+        const [doctors]: any = await db.execute('SELECT COUNT(*) as count FROM doctors WHERE clinic_id = ?', [cid]);
+        const [appointments]: any = await db.execute('SELECT COUNT(*) as count FROM appointments WHERE clinic_id = ?', [cid]);
+        const [services]: any = await db.execute('SELECT COUNT(*) as count FROM services WHERE clinic_id = ?', [cid]);
+        const [revenue]: any = await db.execute('SELECT SUM(amount) as total FROM payments WHERE clinic_id = ? AND status = "Paid"', [cid]);
+        
+        stats = {
+          total_patients: patients[0].count,
+          total_doctors: doctors[0].count,
+          total_appointments: appointments[0].count,
+          total_services: services[0].count,
+          active_services: services[0].count, // Mocking active as total for now
+          total_revenue: revenue[0].total || 0
+        };
+      } else {
+        stats = {
+          total_patients: db.prepare('SELECT COUNT(*) as count FROM patients').get().count,
+          total_doctors: db.prepare('SELECT COUNT(*) as count FROM doctors WHERE clinic_id = ?').get(cid).count,
+          total_appointments: db.prepare('SELECT COUNT(*) as count FROM appointments WHERE clinic_id = ?').get(cid).count,
+          total_services: db.prepare('SELECT COUNT(*) as count FROM services WHERE clinic_id = ?').get(cid).count,
+          active_services: db.prepare('SELECT COUNT(*) as count FROM services WHERE clinic_id = ?').get(cid).count,
+          total_revenue: db.prepare('SELECT SUM(amount) as total FROM payments WHERE clinic_id = ? AND status = "Paid"').get(cid).total || 0
+        };
+      }
+      res.json(stats);
+    } catch (error: any) {
+      console.error('Error fetching insights:', error);
+      res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    }
+  });
+
+  app.get('/api/dashboard/booking-status/:clinicId', async (req, res) => {
+    try {
+      const { clinicId } = req.params;
+      const cid = clinicId === 'undefined' ? 'default-clinic' : clinicId;
+      
+      let rows;
+      if (isMySQL) {
+        [rows] = await db.execute('SELECT status, COUNT(*) as count FROM appointments WHERE clinic_id = ? GROUP BY status', [cid]);
+      } else {
+        rows = db.prepare('SELECT status, COUNT(*) as count FROM appointments WHERE clinic_id = ? GROUP BY status').all(cid);
+      }
+      res.json(rows);
+    } catch (error: any) {
+      console.error('Error fetching booking status:', error);
       res.status(500).json({ error: 'Internal Server Error', details: error.message });
     }
   });
