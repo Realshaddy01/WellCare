@@ -134,7 +134,9 @@ const Records: React.FC = () => {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500">Loading records...</td></tr>
-              ) : records.map((rec) => (
+              ) : (Array.isArray(records) && records.length === 0) ? (
+                <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500">No records found.</td></tr>
+              ) : (Array.isArray(records) ? records : []).map((rec) => (
                 <tr key={rec.id} className="hover:bg-gray-50 transition-colors group">
                   <td className="px-6 py-4">
                     <span className="text-sm font-bold text-blue-600">{rec.id}</span>

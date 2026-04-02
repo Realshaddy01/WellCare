@@ -184,7 +184,9 @@ const Billing: React.FC = () => {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr><td colSpan={7} className="px-6 py-12 text-center text-gray-500">Loading invoices...</td></tr>
-              ) : invoices.map((inv) => (
+              ) : (Array.isArray(invoices) && invoices.length === 0) ? (
+                <tr><td colSpan={7} className="px-6 py-12 text-center text-gray-500">No invoices found.</td></tr>
+              ) : (Array.isArray(invoices) ? invoices : []).map((inv) => (
                 <tr key={inv.id} className="hover:bg-gray-50 transition-colors group">
                   <td className="px-6 py-4">
                     <span className="text-sm font-bold text-blue-600">{inv.id}</span>

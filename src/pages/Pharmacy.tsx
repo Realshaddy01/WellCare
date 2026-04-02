@@ -124,9 +124,9 @@ const Pharmacy: React.FC = () => {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500">Loading pharmacy data...</td></tr>
-              ) : prescriptions.length === 0 ? (
+              ) : (Array.isArray(prescriptions) && prescriptions.length === 0) ? (
                 <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500">No prescriptions found.</td></tr>
-              ) : prescriptions.map((pres) => (
+              ) : (Array.isArray(prescriptions) ? prescriptions : []).map((pres) => (
                 <tr key={pres.id} className="hover:bg-gray-50 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">

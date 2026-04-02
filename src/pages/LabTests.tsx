@@ -122,9 +122,9 @@ const LabTests: React.FC = () => {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500">Loading tests...</td></tr>
-              ) : tests.length === 0 ? (
+              ) : (Array.isArray(tests) && tests.length === 0) ? (
                 <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500">No tests found.</td></tr>
-              ) : tests.map((test) => (
+              ) : (Array.isArray(tests) ? tests : []).map((test) => (
                 <tr key={test.id} className="hover:bg-gray-50 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">

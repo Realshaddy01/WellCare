@@ -119,7 +119,7 @@ const Doctors: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-            {doctors.map((doc) => (
+            {(Array.isArray(doctors) ? doctors : []).map((doc) => (
               <div key={doc.id} className="bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-md transition-all group">
                 <div className="flex items-start justify-between mb-4">
                   <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">

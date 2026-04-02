@@ -58,10 +58,11 @@ const Dashboard: React.FC = () => {
         ]);
 
         setInsights(insightsRes.data);
-        setBookingStatus(statusRes.data.map((item: any) => ({ name: item.status, value: item.count })));
-        setUpcomingAppointments(appRes.data.slice(0, 4));
-        setTopDoctors(docRes.data.slice(0, 3));
-        setPaymentHistory(payRes.data.slice(0, 5));
+        const bookingData = Array.isArray(statusRes.data) ? statusRes.data : [];
+        setBookingStatus(bookingData.map((item: any) => ({ name: item.status, value: item.count })));
+        setUpcomingAppointments(Array.isArray(appRes.data) ? appRes.data.slice(0, 4) : []);
+        setTopDoctors(Array.isArray(docRes.data) ? docRes.data.slice(0, 3) : []);
+        setPaymentHistory(Array.isArray(payRes.data) ? payRes.data.slice(0, 5) : []);
       } catch (err) {
         console.error('Failed to fetch dashboard data', err);
       } finally {
@@ -110,7 +111,7 @@ const Dashboard: React.FC = () => {
             <button className="text-xs text-blue-600 font-semibold hover:underline">View All</button>
           </div>
           <div className="p-5 space-y-4">
-            {upcomingAppointments.map((app, i) => (
+            {Array.isArray(upcomingAppointments) && upcomingAppointments.map((app, i) => (
               <div key={i} className="flex items-center justify-between group cursor-pointer">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-xs">
@@ -134,7 +135,7 @@ const Dashboard: React.FC = () => {
             <button className="text-xs text-blue-600 font-semibold hover:underline">View All</button>
           </div>
           <div className="p-5 space-y-4">
-            {topDoctors.map((doc, i) => (
+            {Array.isArray(topDoctors) && topDoctors.map((doc, i) => (
               <div key={i} className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-xs">
@@ -166,7 +167,7 @@ const Dashboard: React.FC = () => {
                   paddingAngle={5}
                   dataKey="value"
                 >
-                  {bookingStatus.map((entry, index) => (
+                  {Array.isArray(bookingStatus) && bookingStatus.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -200,7 +201,7 @@ const Dashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {paymentHistory.map((pay, i) => (
+              {Array.isArray(paymentHistory) && paymentHistory.map((pay, i) => (
                 <tr key={i} className="text-sm hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">

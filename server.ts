@@ -5,6 +5,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import axios from 'axios';
 import * as admin from 'firebase-admin';
+import { getFirestore } from 'firebase-admin/firestore';
 import fs from 'fs';
 import dotenv from 'dotenv';
 
@@ -19,10 +20,10 @@ if (!admin.apps.length) {
   });
 }
 
-const db = admin.firestore();
-if (firebaseConfig.firestoreDatabaseId) {
-  db.settings({ databaseId: firebaseConfig.firestoreDatabaseId });
-}
+// Correct way to get a specific database in Firebase Admin SDK
+const db = firebaseConfig.firestoreDatabaseId 
+  ? getFirestore(admin.app(), firebaseConfig.firestoreDatabaseId)
+  : getFirestore(admin.app());
 
 async function startServer() {
   const app = express();

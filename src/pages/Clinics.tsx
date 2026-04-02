@@ -116,9 +116,9 @@ const Clinics: React.FC = () => {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-500">Loading clinics...</td></tr>
-              ) : clinics.length === 0 ? (
+              ) : (Array.isArray(clinics) && clinics.length === 0) ? (
                 <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-500">No clinics found.</td></tr>
-              ) : clinics.map((clinic) => (
+              ) : (Array.isArray(clinics) ? clinics : []).map((clinic) => (
                 <tr key={clinic.id} className="hover:bg-gray-50 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">

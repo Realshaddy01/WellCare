@@ -134,53 +134,55 @@ const Patients: React.FC = () => {
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-gray-500">Loading patients...</td>
                 </tr>
-              ) : patients.length === 0 ? (
+              ) : (Array.isArray(patients) && patients.length === 0) ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-gray-500">No patients found.</td>
                 </tr>
-              ) : patients.map((patient) => (
-                <tr key={patient.id} className="hover:bg-gray-50 transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-                        <UserRound className="w-5 h-5" />
+              ) : (
+                (Array.isArray(patients) ? patients : []).map((patient) => (
+                  <tr key={patient.id} className="hover:bg-gray-50 transition-colors group">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                          <UserRound className="w-5 h-5" />
+                        </div>
+                        <span className="text-sm font-bold text-gray-900">{patient.name}</span>
                       </div>
-                      <span className="text-sm font-bold text-gray-900">{patient.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col">
-                      <span className="text-sm text-gray-900">{patient.email}</span>
-                      <span className="text-xs text-gray-500">{patient.phone}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm text-gray-600">{patient.gender}, {patient.age}y</span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600 font-bold">{patient.blood_group}</td>
-                  <td className="px-6 py-4">
-                    <span className="text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider bg-emerald-50 text-emerald-600">
-                      Active
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => handleEdit(patient)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(patient.id)}
-                        className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <span className="text-sm text-gray-900">{patient.email}</span>
+                        <span className="text-xs text-gray-500">{patient.phone}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-gray-600">{patient.gender}, {patient.age}y</span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600 font-bold">{patient.blood_group}</td>
+                    <td className="px-6 py-4">
+                      <span className="text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider bg-emerald-50 text-emerald-600">
+                        Active
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => handleEdit(patient)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(patient.id)}
+                          className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

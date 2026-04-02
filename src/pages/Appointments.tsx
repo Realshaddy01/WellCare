@@ -229,7 +229,9 @@ const Appointments: React.FC = () => {
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
                   <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500">Loading appointments...</td></tr>
-                ) : appointments.map((app) => (
+                ) : (Array.isArray(appointments) && appointments.length === 0) ? (
+                  <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500">No appointments found.</td></tr>
+                ) : (Array.isArray(appointments) ? appointments : []).map((app) => (
                   <tr key={app.id} className="hover:bg-gray-50 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">

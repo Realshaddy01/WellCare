@@ -158,9 +158,9 @@ const Inventory: React.FC = () => {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-500">Loading inventory...</td></tr>
-              ) : items.length === 0 ? (
+              ) : (Array.isArray(items) && items.length === 0) ? (
                 <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-500">No items found.</td></tr>
-              ) : items.map((item) => (
+              ) : (Array.isArray(items) ? items : []).map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50 transition-colors group">
                   <td className="px-6 py-4">
                     <span className="text-sm font-bold text-gray-900">{item.name}</span>
