@@ -70,7 +70,7 @@ const Login: React.FC = () => {
             <div className="flex flex-col items-center mb-8">
               <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mb-4 shadow-sm border border-gray-100 overflow-hidden">
                 <img 
-                  src="https://res-console.cloudinary.com/dqz5ujy50/thumbnails/transform/v1/image/upload/Y19maWxsLGhfMjAwLHdfMjAw/v1/ZHJfc2F0aGkyLW5vYmdfZ25iZ3di/template_primary" 
+                  src="https://res.cloudinary.com/dqz5ujy50/image/upload/v1775121416/dr_sathi2-nobg_gnbgwb.png" 
                   alt="Dr. Sathi HomeCare Logo" 
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"

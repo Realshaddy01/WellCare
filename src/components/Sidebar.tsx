@@ -69,7 +69,7 @@ const Sidebar: React.FC<{ isOpen: boolean; toggle: () => void }> = ({ isOpen, to
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden border border-gray-100 shadow-sm">
                 <img 
-                  src="https://res-console.cloudinary.com/dqz5ujy50/thumbnails/transform/v1/image/upload/Y19maWxsLGhfMjAwLHdfMjAw/v1/ZHJfc2F0aGkyLW5vYmdfZ25iZ3di/template_primary" 
+                  src="https://res.cloudinary.com/dqz5ujy50/image/upload/v1775121416/dr_sathi2-nobg_gnbgwb.png" 
                   alt="Logo" 
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
