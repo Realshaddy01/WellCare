@@ -44,7 +44,7 @@ const Billing: React.FC = () => {
       toast.info('Simulating Khalti Payment...');
       const res = await api.post('/api/payments/verify/khalti', {
         token: 'fake-token-123',
-        amount: parseInt(invoice.amount.replace(/[^0-9]/g, '')) * 100
+        amount: parseInt(String(invoice.amount).replace(/[^0-9]/g, '')) * 100
       });
       toast.success('Payment verified successfully via Dr. Sathi HomeCare Hosting Server!');
       fetchData();

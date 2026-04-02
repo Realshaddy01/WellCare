@@ -264,6 +264,126 @@ async function startServer() {
     }
   });
 
+  // Clinics CRUD
+  app.get('/api/demo/clinics', async (req, res) => {
+    try {
+      const snap = await db.collection('clinics').get();
+      const clinics = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      res.json(clinics);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/demo/clinics', async (req, res) => {
+    try {
+      const clinicData = req.body;
+      const docRef = await db.collection('clinics').add({
+        ...clinicData,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      res.status(201).json({ id: docRef.id, ...clinicData });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Inventory CRUD
+  app.get('/api/demo/inventory', async (req, res) => {
+    try {
+      const snap = await db.collection('inventory').get();
+      const items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/demo/inventory', async (req, res) => {
+    try {
+      const itemData = req.body;
+      const docRef = await db.collection('inventory').add({
+        ...itemData,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      res.status(201).json({ id: docRef.id, ...itemData });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Lab Tests CRUD
+  app.get('/api/demo/lab-tests', async (req, res) => {
+    try {
+      const snap = await db.collection('lab_tests').get();
+      const tests = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      res.json(tests);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/demo/lab-tests', async (req, res) => {
+    try {
+      const testData = req.body;
+      const docRef = await db.collection('lab_tests').add({
+        ...testData,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      res.status(201).json({ id: docRef.id, ...testData });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Pharmacy / Prescriptions CRUD
+  app.get('/api/demo/prescriptions', async (req, res) => {
+    try {
+      const snap = await db.collection('prescriptions').get();
+      const prescriptions = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      res.json(prescriptions);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/demo/prescriptions', async (req, res) => {
+    try {
+      const presData = req.body;
+      const docRef = await db.collection('prescriptions').add({
+        ...presData,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      res.status(201).json({ id: docRef.id, ...presData });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Notifications CRUD
+  app.get('/api/demo/notifications', async (req, res) => {
+    try {
+      const snap = await db.collection('notifications').orderBy('createdAt', 'desc').get();
+      const notifications = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      res.json(notifications);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/demo/notifications', async (req, res) => {
+    try {
+      const notifData = req.body;
+      const docRef = await db.collection('notifications').add({
+        ...notifData,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      res.status(201).json({ id: docRef.id, ...notifData });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

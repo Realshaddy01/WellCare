@@ -81,7 +81,7 @@ const Dashboard: React.FC = () => {
       <InsightCard label="Total Doctors" value={insights?.total_doctors || 0} icon={Stethoscope} color="text-emerald-600" bg="bg-emerald-50" />
       <InsightCard label="Total Services" value={insights?.total_services || 0} icon={Package} color="text-amber-600" bg="bg-amber-50" />
       <InsightCard label="Active Services" value={insights?.active_services || 0} icon={Activity} color="text-rose-600" bg="bg-rose-50" />
-      <InsightCard label="Total Revenue" value={`रू ${insights?.total_revenue?.toLocaleString() || 0}`} icon={CreditCard} color="text-indigo-600" bg="bg-indigo-50" />
+      <InsightCard label="Total Revenue" value={`रू ${Number(insights?.total_revenue || 0).toLocaleString()}`} icon={CreditCard} color="text-indigo-600" bg="bg-indigo-50" />
     </div>
   );
 
@@ -114,7 +114,7 @@ const Dashboard: React.FC = () => {
               <div key={i} className="flex items-center justify-between group cursor-pointer">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-xs">
-                    {app.patient_name[0]}
+                    {app.patient_name?.[0] || 'P'}
                   </div>
                   <div>
                     <p className="text-sm font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{app.patient_name}</p>
@@ -138,7 +138,7 @@ const Dashboard: React.FC = () => {
               <div key={i} className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-xs">
-                    {doc.name[0]}
+                    {doc.name?.[0] || 'D'}
                   </div>
                   <div>
                     <p className="text-sm font-bold text-gray-900">{doc.name}</p>
@@ -205,7 +205,7 @@ const Dashboard: React.FC = () => {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-[10px]">
-                        {pay.patient_id[0]}
+                        {String(pay.patient_id || 'P')[0]}
                       </div>
                       <span className="font-bold text-gray-900">Patient {pay.patient_id}</span>
                     </div>

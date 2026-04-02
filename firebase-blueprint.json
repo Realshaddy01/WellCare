@@ -144,6 +144,50 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "message"]
+    },
+    "Inventory": {
+      "title": "Inventory",
+      "description": "Clinic inventory items",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string" },
+        "min_stock": { "type": "number" },
+        "price": { "type": "number" },
+        "clinicId": { "type": "string" }
+      },
+      "required": ["name", "quantity", "clinicId"]
+    },
+    "LabTest": {
+      "title": "LabTest",
+      "description": "Laboratory test records",
+      "type": "object",
+      "properties": {
+        "patientId": { "type": "string" },
+        "testName": { "type": "string" },
+        "result": { "type": "string" },
+        "status": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "clinicId": { "type": "string" }
+      },
+      "required": ["patientId", "testName", "status", "clinicId"]
+    },
+    "Prescription": {
+      "title": "Prescription",
+      "description": "Medication prescriptions",
+      "type": "object",
+      "properties": {
+        "patientId": { "type": "string" },
+        "medication": { "type": "string" },
+        "dosage": { "type": "string" },
+        "frequency": { "type": "string" },
+        "status": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "clinicId": { "type": "string" }
+      },
+      "required": ["patientId", "medication", "status", "clinicId"]
     }
   },
   "firestore": {
@@ -156,6 +200,9 @@
     "/invoices/{invoiceId}": { "schema": "Invoice", "description": "Invoices" },
     "/payments/{paymentId}": { "schema": "Payment", "description": "Payments" },
     "/services/{serviceId}": { "schema": "Service", "description": "Clinic services" },
-    "/notifications/{notificationId}": { "schema": "Notification", "description": "User notifications" }
+    "/notifications/{notificationId}": { "schema": "Notification", "description": "User notifications" },
+    "/inventory/{itemId}": { "schema": "Inventory", "description": "Inventory items" },
+    "/lab_tests/{testId}": { "schema": "LabTest", "description": "Lab test records" },
+    "/prescriptions/{prescriptionId}": { "schema": "Prescription", "description": "Prescriptions" }
   }
 }
