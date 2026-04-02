@@ -18,7 +18,7 @@ const Layout: React.FC = () => {
           <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
             <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
           </div>
-          <span className="text-sm font-medium text-gray-500 tracking-widest uppercase">WellCare Loading...</span>
+          <span className="text-sm font-medium text-gray-500 tracking-widest uppercase">Dr. Sathi HomeCare Loading...</span>
         </div>
       </div>
     );

@@ -1,4 +1,4 @@
--- WellCare MySQL Schema
+-- Dr. Sathi HomeCare MySQL Schema
 -- Import this into your phpMyAdmin database
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";

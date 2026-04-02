@@ -51,11 +51,11 @@ const Dashboard: React.FC = () => {
     <div className="space-y-8">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Global Analytics</h1>
-        <p className="text-gray-500">Overview of all clinics and healthcare providers.</p>
+        <p className="text-gray-500">Overview of all HomeCare Centers and healthcare providers.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard label="Total Clinics" value="24" change="+2" icon={Activity} color="bg-blue-500" />
+        <StatCard label="Total Centers" value="24" change="+2" icon={Activity} color="bg-blue-500" />
         <StatCard label="Total Doctors" value={serverStats?.total_doctors?.toString() || "168"} change="+12" icon={Stethoscope} color="bg-purple-500" />
         <StatCard label="Total Patients" value={serverStats?.total_patients?.toLocaleString() || "4,872"} change="+487" icon={UserRound} color="bg-emerald-500" />
         <StatCard label="Total Revenue" value={`रू ${serverStats?.total_revenue?.toLocaleString() || "1.2M"}`} change="+15%" icon={CreditCard} color="bg-amber-500" />
@@ -269,7 +269,7 @@ const Dashboard: React.FC = () => {
       <div className="w-20 h-20 bg-blue-100 rounded-3xl flex items-center justify-center text-blue-600 mb-6">
         <Activity className="w-10 h-10" />
       </div>
-      <h2 className="text-2xl font-bold text-gray-900">Welcome to WellCare</h2>
+      <h2 className="text-2xl font-bold text-gray-900">Welcome to Dr. Sathi HomeCare</h2>
       <p className="text-gray-500 mt-2 max-w-md">Your role is being configured. Please contact your administrator if this takes too long.</p>
     </div>
   );

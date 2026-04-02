@@ -17,20 +17,30 @@ const isMySQL = process.env.DB_CONNECTION === 'mysql';
 
 async function initDB() {
   if (isMySQL) {
-    console.log('Connecting to MySQL database...');
-    db = await mysql.createConnection({
-      host: process.env.DB_HOST || '127.0.0.1',
-      user: process.env.DB_USERNAME,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_DATABASE,
-      port: Number(process.env.DB_PORT) || 3306,
-    });
-    console.log('Connected to MySQL.');
+    console.log('Connecting to MySQL database with following config:');
+    console.log(`Host: ${process.env.DB_HOST || '127.0.0.1'}`);
+    console.log(`Database: ${process.env.DB_DATABASE}`);
+    console.log(`User: ${process.env.DB_USERNAME}`);
+    try {
+      db = await mysql.createConnection({
+        host: process.env.DB_HOST || '127.0.0.1',
+        user: process.env.DB_USERNAME,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_DATABASE,
+        port: Number(process.env.DB_PORT) || 3306,
+      });
+      console.log('Successfully connected to MySQL.');
+    } catch (err: any) {
+      console.error('FAILED to connect to MySQL:', err.message);
+      console.error('Full Error:', err);
+      process.exit(1);
+    }
   } else {
     console.log('Attempting to use SQLite database (wellcare.db)...');
     try {
       const { default: Database } = await import('better-sqlite3');
       db = new Database('wellcare.db');
+      console.log('Successfully connected to SQLite.');
       db.exec(`
         CREATE TABLE IF NOT EXISTS clinic_stats (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -166,7 +176,7 @@ async function startServer() {
 
   // API Routes
   app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', message: 'WellCare Backend is running' });
+    res.json({ status: 'ok', message: 'Dr. Sathi HomeCare Backend is running' });
   });
 
   // Example "others data" endpoint using SQLite
@@ -353,7 +363,7 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`WellCare Server running on http://localhost:${PORT}`);
+    console.log(`Dr. Sathi HomeCare Server running on http://localhost:${PORT}`);
   });
 }
 

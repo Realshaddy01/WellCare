@@ -17,7 +17,7 @@ const Placeholder = ({ title }: { title: string }) => (
       <Activity className="w-10 h-10" />
     </div>
     <h2 className="text-2xl font-bold text-gray-900">{title} Page</h2>
-    <p className="text-gray-500 mt-2">This feature is coming soon to WellCare.</p>
+    <p className="text-gray-500 mt-2">This feature is coming soon to Dr. Sathi HomeCare.</p>
   </div>
 );
 

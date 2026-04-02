@@ -34,7 +34,7 @@ const Sidebar: React.FC<{ isOpen: boolean; toggle: () => void }> = ({ isOpen, to
 
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/', roles: ['super_admin', 'clinic_admin', 'doctor', 'receptionist', 'patient'] },
-    { name: 'Clinics', icon: Home, path: '/clinics', roles: ['super_admin'] },
+    { name: 'Centers', icon: Home, path: '/clinics', roles: ['super_admin'] },
     { name: 'Doctors', icon: Stethoscope, path: '/doctors', roles: ['super_admin', 'clinic_admin', 'patient'] },
     { name: 'Patients', icon: UserRound, path: '/patients', roles: ['super_admin', 'clinic_admin', 'doctor', 'receptionist'] },
     { name: 'Appointments', icon: Calendar, path: '/appointments', roles: ['super_admin', 'clinic_admin', 'doctor', 'receptionist', 'patient'] },
@@ -65,12 +65,17 @@ const Sidebar: React.FC<{ isOpen: boolean; toggle: () => void }> = ({ isOpen, to
       )}>
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center h-16 px-6 border-bottom border-gray-100">
+          <div className="flex items-center h-20 px-6 border-b border-gray-100">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Activity className="text-white w-5 h-5" />
+              <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden border border-gray-100 shadow-sm">
+                <img 
+                  src="https://picsum.photos/seed/drsathi-logo/100/100" 
+                  alt="Logo" 
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
               </div>
-              {isOpen && <span className="font-bold text-xl text-gray-900 tracking-tight">WellCare</span>}
+              {isOpen && <span className="font-bold text-lg text-gray-900 tracking-tight leading-tight">Dr. Sathi<br/><span className="text-blue-600 text-xs font-medium">HomeCare</span></span>}
             </div>
           </div>
 

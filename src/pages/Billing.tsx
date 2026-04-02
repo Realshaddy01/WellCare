@@ -18,7 +18,7 @@ const Billing: React.FC = () => {
         token: 'fake-token-123',
         amount: 1000 // amount in paisa
       });
-      toast.success('Payment verified successfully via WellCare Hosting Server!');
+      toast.success('Payment verified successfully via Dr. Sathi HomeCare Hosting Server!');
     } catch (err) {
       toast.error('Payment verification failed on server.');
     } finally {

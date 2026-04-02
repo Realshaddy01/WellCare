@@ -22,7 +22,7 @@ const Login: React.FC = () => {
     setError(null);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      toast.success('Welcome back to WellCare!');
+      toast.success('Welcome back to Dr. Sathi HomeCare!');
       navigate(from, { replace: true });
     } catch (err: any) {
       setError(err.message || 'Failed to login');
@@ -67,13 +67,18 @@ const Login: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
         <div className="p-8">
-          <div className="flex flex-col items-center mb-8">
-            <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mb-4">
-              <Activity className="text-white w-7 h-7" />
+            <div className="flex flex-col items-center mb-8">
+              <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mb-4 shadow-sm border border-gray-100 overflow-hidden">
+                <img 
+                  src="https://picsum.photos/seed/drsathi-logo/200/200" 
+                  alt="Dr. Sathi HomeCare Logo" 
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Dr. Sathi HomeCare</h1>
+              <p className="text-gray-500 text-sm mt-1">Sign in to manage your healthcare journey</p>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Welcome to WellCare</h1>
-            <p className="text-gray-500 text-sm mt-1">Sign in to manage your healthcare journey</p>
-          </div>
 
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-600 text-sm">
@@ -150,7 +155,7 @@ const Login: React.FC = () => {
 
         <div className="p-6 bg-gray-50 border-t border-gray-100 text-center">
           <p className="text-sm text-gray-500">
-            Don't have an account? <span className="text-blue-600 font-semibold cursor-pointer hover:underline">Contact your clinic</span>
+            Don't have an account? <span className="text-blue-600 font-semibold cursor-pointer hover:underline">Contact Dr. Sathi HomeCare</span>
           </p>
         </div>
       </div>
