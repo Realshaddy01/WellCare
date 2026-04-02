@@ -27,11 +27,15 @@ const Records: React.FC = () => {
         api.get('/api/demo/patients'),
         api.get('/api/demo/doctors')
       ]);
-      setRecords(recRes.data);
-      setPatients(patRes.data);
-      setDoctors(docRes.data);
+      setRecords(Array.isArray(recRes.data) ? recRes.data : []);
+      setPatients(Array.isArray(patRes.data) ? patRes.data : []);
+      setDoctors(Array.isArray(docRes.data) ? docRes.data : []);
     } catch (err) {
+      console.error('Failed to fetch data:', err);
       toast.error('Failed to fetch data');
+      setRecords([]);
+      setPatients([]);
+      setDoctors([]);
     } finally {
       setLoading(false);
     }
@@ -43,7 +47,7 @@ const Records: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const patient = patients.find(p => p.id === formData.patient_id);
+    const patient = Array.isArray(patients) ? patients.find(p => p.id === formData.patient_id) : null;
     try {
       if (editingRecord) {
         await api.post('/api/demo/records', {
@@ -63,7 +67,8 @@ const Records: React.FC = () => {
       setEditingRecord(null);
       fetchData();
     } catch (err) {
-      toast.error('Failed to save record');
+      console.error('Failed to save record:', err);
+      toast.error('Failed to save medical record');
     }
   };
 

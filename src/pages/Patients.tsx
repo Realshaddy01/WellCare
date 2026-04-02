@@ -22,9 +22,11 @@ const Patients: React.FC = () => {
     setLoading(true);
     try {
       const res = await api.get('/api/demo/patients');
-      setPatients(res.data);
+      setPatients(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
+      console.error('Failed to fetch patients:', err);
       toast.error('Failed to fetch patients');
+      setPatients([]);
     } finally {
       setLoading(false);
     }

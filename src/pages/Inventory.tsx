@@ -21,9 +21,11 @@ const Inventory: React.FC = () => {
     setLoading(true);
     try {
       const res = await api.get('/api/demo/inventory');
-      setItems(res.data);
+      setItems(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
+      console.error('Failed to fetch inventory:', err);
       toast.error('Failed to fetch inventory');
+      setItems([]);
     } finally {
       setLoading(false);
     }

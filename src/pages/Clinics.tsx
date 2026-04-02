@@ -20,9 +20,11 @@ const Clinics: React.FC = () => {
     setLoading(true);
     try {
       const res = await api.get('/api/demo/clinics');
-      setClinics(res.data);
+      setClinics(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
+      console.error('Failed to fetch clinics:', err);
       toast.error('Failed to fetch clinics');
+      setClinics([]);
     } finally {
       setLoading(false);
     }

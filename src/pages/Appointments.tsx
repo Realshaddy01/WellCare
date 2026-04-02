@@ -41,11 +41,15 @@ const Appointments: React.FC = () => {
         api.get('/api/demo/doctors'),
         api.get('/api/demo/patients')
       ]);
-      setAppointments(appRes.data);
-      setDoctors(docRes.data);
-      setPatients(patRes.data);
+      setAppointments(Array.isArray(appRes.data) ? appRes.data : []);
+      setDoctors(Array.isArray(docRes.data) ? docRes.data : []);
+      setPatients(Array.isArray(patRes.data) ? patRes.data : []);
     } catch (err) {
+      console.error('Failed to fetch data:', err);
       toast.error('Failed to fetch data');
+      setAppointments([]);
+      setDoctors([]);
+      setPatients([]);
     } finally {
       setLoading(false);
     }
@@ -57,8 +61,8 @@ const Appointments: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const doctor = doctors.find(d => d.id === formData.doctor_id);
-    const patient = patients.find(p => p.id === formData.patient_id);
+    const doctor = Array.isArray(doctors) ? doctors.find(d => d.id === formData.doctor_id) : null;
+    const patient = Array.isArray(patients) ? patients.find(p => p.id === formData.patient_id) : null;
     
     try {
       if (editingAppointment) {
@@ -81,6 +85,7 @@ const Appointments: React.FC = () => {
       setEditingAppointment(null);
       fetchData();
     } catch (err) {
+      console.error('Failed to save appointment:', err);
       toast.error('Failed to save appointment');
     }
   };
@@ -159,7 +164,13 @@ const Appointments: React.FC = () => {
 
           <div className="grid grid-cols-7">
             {calendarDays.map((day, i) => {
-              const dayAppointments = appointments.filter(app => isSameDay(parseISO(app.date), day));
+              const dayAppointments = (Array.isArray(appointments) ? appointments : []).filter(app => {
+                try {
+                  return app.date && isSameDay(parseISO(app.date), day);
+                } catch (e) {
+                  return false;
+                }
+              });
               return (
                 <div 
                   key={i} 
@@ -187,7 +198,7 @@ const Appointments: React.FC = () => {
                         key={app.id} 
                         onClick={(e) => { e.stopPropagation(); handleEdit(app); }}
                         className={`text-[10px] p-1.5 rounded-lg border truncate ${
-                          app.type.toLowerCase().includes('video') 
+                          (app.type || '').toLowerCase().includes('video') 
                             ? 'bg-blue-50 border-blue-100 text-blue-700' 
                             : 'bg-emerald-50 border-emerald-100 text-emerald-700'
                         }`}

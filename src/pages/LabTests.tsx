@@ -24,10 +24,13 @@ const LabTests: React.FC = () => {
         api.get('/api/demo/lab-tests'),
         api.get('/api/demo/patients')
       ]);
-      setTests(testRes.data);
-      setPatients(patRes.data);
+      setTests(Array.isArray(testRes.data) ? testRes.data : []);
+      setPatients(Array.isArray(patRes.data) ? patRes.data : []);
     } catch (err) {
+      console.error('Failed to fetch lab tests:', err);
       toast.error('Failed to fetch lab tests');
+      setTests([]);
+      setPatients([]);
     } finally {
       setLoading(false);
     }
@@ -39,7 +42,7 @@ const LabTests: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const patient = patients.find(p => p.id === formData.patient_id);
+    const patient = Array.isArray(patients) ? patients.find(p => p.id === formData.patient_id) : null;
     try {
       if (editingTest) {
         await api.post('/api/demo/lab-tests', { ...formData, id: editingTest.id, patient_name: patient?.name });
@@ -52,7 +55,8 @@ const LabTests: React.FC = () => {
       setEditingTest(null);
       fetchData();
     } catch (err) {
-      toast.error('Failed to save test');
+      console.error('Failed to save test:', err);
+      toast.error('Failed to save lab test');
     }
   };
 

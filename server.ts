@@ -34,8 +34,68 @@ async function startServer() {
   app.use(morgan('dev'));
 
   // API Routes
-  app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', message: 'Dr. Sathi HomeCare Backend is running with Firebase' });
+  app.get('/api/health', async (req, res) => {
+    try {
+      // Test Firestore connection
+      await db.collection('health_check').doc('test').set({ 
+        last_check: admin.firestore.FieldValue.serverTimestamp(),
+        status: 'ok'
+      });
+      res.json({ 
+        status: 'ok', 
+        message: 'Dr. Sathi HomeCare Backend is running with Firebase',
+        firestore: 'connected',
+        databaseId: firebaseConfig.firestoreDatabaseId || '(default)'
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        status: 'error', 
+        message: 'Backend is running but Firestore connection failed',
+        error: error.message,
+        config: {
+          projectId: firebaseConfig.projectId,
+          databaseId: firebaseConfig.firestoreDatabaseId
+        }
+      });
+    }
+  });
+
+  app.post('/api/demo/seed', async (req, res) => {
+    try {
+      const clinicId = 'default-clinic';
+      
+      // Seed Doctors
+      const doctors = [
+        { name: 'Dr. Sameer Sharma', specialty: 'Cardiologist', fees: 1500, rating: 4.8, clinicId },
+        { name: 'Dr. Anjali Gupta', specialty: 'Dermatologist', fees: 1200, rating: 4.7, clinicId },
+        { name: 'Dr. Rajesh Karki', specialty: 'Pediatrician', fees: 1000, rating: 4.9, clinicId }
+      ];
+      for (const doc of doctors) {
+        await db.collection('doctors').add({ ...doc, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+      }
+
+      // Seed Patients
+      const patients = [
+        { name: 'Ram Bahadur', email: 'ram@example.com', phone: '9841234567', age: 45, gender: 'Male', bloodGroup: 'O+', clinicId },
+        { name: 'Sita Kumari', email: 'sita@example.com', phone: '9841765432', age: 38, gender: 'Female', bloodGroup: 'A-', clinicId }
+      ];
+      for (const pat of patients) {
+        await db.collection('patients').add({ ...pat, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+      }
+
+      // Seed Services
+      const services = [
+        { name: 'General Consultation', description: 'Basic health checkup', price: 500, status: 'active', clinicId },
+        { name: 'ECG', description: 'Heart health monitoring', price: 1500, status: 'active', clinicId }
+      ];
+      for (const ser of services) {
+        await db.collection('services').add({ ...ser, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+      }
+
+      res.json({ message: 'Database seeded successfully' });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
   });
 
   // Insights from Firestore

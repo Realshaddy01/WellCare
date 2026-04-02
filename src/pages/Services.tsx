@@ -20,10 +20,11 @@ const Services: React.FC = () => {
     setLoading(true);
     try {
       const res = await api.get('/api/demo/services');
-      setServices(res.data);
+      setServices(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to fetch services:', err);
       toast.error('Failed to fetch services');
+      setServices([]);
     } finally {
       setLoading(false);
     }

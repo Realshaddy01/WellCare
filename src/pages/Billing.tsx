@@ -25,10 +25,13 @@ const Billing: React.FC = () => {
         api.get('/api/demo/payments'), // Using payments as invoices for now
         api.get('/api/demo/patients')
       ]);
-      setInvoices(invRes.data);
-      setPatients(patRes.data);
+      setInvoices(Array.isArray(invRes.data) ? invRes.data : []);
+      setPatients(Array.isArray(patRes.data) ? patRes.data : []);
     } catch (err) {
+      console.error('Failed to fetch billing data:', err);
       toast.error('Failed to fetch billing data');
+      setInvoices([]);
+      setPatients([]);
     } finally {
       setLoading(false);
     }
@@ -57,7 +60,7 @@ const Billing: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const patient = patients.find(p => p.id === formData.patient_id);
+    const patient = Array.isArray(patients) ? patients.find(p => p.id === formData.patient_id) : null;
     try {
       if (editingInvoice) {
         await api.post('/api/demo/payments', {
@@ -77,6 +80,7 @@ const Billing: React.FC = () => {
       setEditingInvoice(null);
       fetchData();
     } catch (err) {
+      console.error('Failed to save invoice:', err);
       toast.error('Failed to save invoice');
     }
   };

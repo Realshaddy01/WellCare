@@ -25,10 +25,13 @@ const Pharmacy: React.FC = () => {
         api.get('/api/demo/prescriptions'),
         api.get('/api/demo/patients')
       ]);
-      setPrescriptions(presRes.data);
-      setPatients(patRes.data);
+      setPrescriptions(Array.isArray(presRes.data) ? presRes.data : []);
+      setPatients(Array.isArray(patRes.data) ? patRes.data : []);
     } catch (err) {
+      console.error('Failed to fetch pharmacy data:', err);
       toast.error('Failed to fetch pharmacy data');
+      setPrescriptions([]);
+      setPatients([]);
     } finally {
       setLoading(false);
     }
@@ -40,7 +43,7 @@ const Pharmacy: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const patient = patients.find(p => p.id === formData.patient_id);
+    const patient = Array.isArray(patients) ? patients.find(p => p.id === formData.patient_id) : null;
     try {
       if (editingPrescription) {
         await api.post('/api/demo/prescriptions', { ...formData, id: editingPrescription.id, patient_name: patient?.name });
@@ -53,6 +56,7 @@ const Pharmacy: React.FC = () => {
       setEditingPrescription(null);
       fetchData();
     } catch (err) {
+      console.error('Failed to save prescription:', err);
       toast.error('Failed to save prescription');
     }
   };

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { User, Lock, Bell, Shield, Save, Camera } from 'lucide-react';
+import { User, Lock, Bell, Shield, Save, Camera, Activity } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
+import api from '../lib/api';
 
 const Settings: React.FC = () => {
   const { profile } = useAuth();
@@ -35,6 +36,7 @@ const Settings: React.FC = () => {
     { id: 'security', label: 'Security', icon: Lock },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'privacy', label: 'Privacy', icon: Shield },
+    { id: 'developer', label: 'Developer', icon: Activity },
   ];
 
   return (
@@ -232,6 +234,57 @@ const Settings: React.FC = () => {
                   </div>
                   <button className="px-4 py-2 bg-rose-600 text-white rounded-xl text-sm font-bold hover:bg-rose-700 transition-all shadow-lg shadow-rose-100">
                     Delete Account
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'developer' && (
+            <div className="p-8 space-y-6">
+              <div className="flex flex-col gap-1">
+                <h3 className="text-lg font-bold text-gray-900">Developer Options</h3>
+                <p className="text-sm text-gray-500">Tools for debugging and database management.</p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="p-6 border border-blue-100 bg-blue-50 rounded-2xl space-y-4">
+                  <div>
+                    <h4 className="text-sm font-bold text-blue-900">Seed Database</h4>
+                    <p className="text-xs text-blue-600 mt-1">Populate the database with initial sample data (Doctors, Patients, Services).</p>
+                  </div>
+                  <button 
+                    onClick={async () => {
+                      try {
+                        await api.post('/api/demo/seed');
+                        toast.success('Database seeded successfully');
+                      } catch (err) {
+                        toast.error('Failed to seed database');
+                      }
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+                  >
+                    Seed Initial Data
+                  </button>
+                </div>
+
+                <div className="p-6 border border-gray-200 bg-gray-50 rounded-2xl space-y-4">
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-900">Backend Health Check</h4>
+                    <p className="text-xs text-gray-500 mt-1">Verify the connection between the backend and Firestore.</p>
+                  </div>
+                  <button 
+                    onClick={async () => {
+                      try {
+                        const res = await api.get('/api/health');
+                        toast.success(`Backend: ${res.data.status}, Firestore: ${res.data.firestore}`);
+                      } catch (err: any) {
+                        toast.error(`Health check failed: ${err.response?.data?.message || err.message}`);
+                      }
+                    }}
+                    className="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-black transition-all shadow-lg shadow-gray-100"
+                  >
+                    Run Health Check
                   </button>
                 </div>
               </div>
